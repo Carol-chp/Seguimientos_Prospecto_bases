@@ -31,7 +31,7 @@ public class CampaniaService {
 
     public Campania crearCampania(Campania campania) {
         // Validación opcional antes de guardar
-        if (campania == null || campania.getCampaniaID() == null ) {
+        if (campania == null || campania.getId() == null ) {
             throw new IllegalArgumentException("Los datos del administrador no son válidos");
         }
         return campaniaRepository.save(campania);

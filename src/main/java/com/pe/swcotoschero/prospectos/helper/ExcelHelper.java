@@ -1,5 +1,6 @@
 package com.pe.swcotoschero.prospectos.helper;
 
+import com.pe.swcotoschero.prospectos.Entity.Campania;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -20,14 +21,16 @@ public class ExcelHelper {
                 if (row.getRowNum() == 0) continue; // Saltar encabezado
                 Prospecto prospecto = new Prospecto();
                 prospecto.setNombre(row.getCell(0).getStringCellValue());
-                prospecto.setApellidos(row.getCell(1).getStringCellValue());
+                prospecto.setApellido(row.getCell(1).getStringCellValue());
                 prospecto.setCelular(row.getCell(2).getStringCellValue());
                 prospecto.setDocumentoIdentidad(row.getCell(3).getStringCellValue());
                 prospecto.setSexo(row.getCell(4).getStringCellValue());
                 prospecto.setBanco(row.getCell(5).getStringCellValue());
                 prospecto.setCargo(row.getCell(6).getStringCellValue());
                 prospecto.setDistrito(row.getCell(7).getStringCellValue());
-                prospecto.setCampania(row.getCell(8).getStringCellValue());
+                Campania campania = new Campania();
+                campania.setDescripcion(row.getCell(8).getStringCellValue());
+                prospecto.setCampania(campania);
                 prospecto.setSubcampania(row.getCell(9).getStringCellValue());
                 prospectos.add(prospecto);
             }

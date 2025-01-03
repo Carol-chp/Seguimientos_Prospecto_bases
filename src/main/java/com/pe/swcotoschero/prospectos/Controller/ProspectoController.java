@@ -1,6 +1,9 @@
 package com.pe.swcotoschero.prospectos.Controller;
 
+import com.pe.swcotoschero.prospectos.Service.ProspectoBusquedaService;
 import com.pe.swcotoschero.prospectos.Service.ProspectoService;
+import com.pe.swcotoschero.prospectos.dto.ProspectoBusquedaRequestDTO;
+import com.pe.swcotoschero.prospectos.dto.ProspectoBusquedaResponseDTO;
 import com.pe.swcotoschero.prospectos.helper.ExcelHelper;
 import com.pe.swcotoschero.prospectos.Entity.Prospecto;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +23,9 @@ public class ProspectoController {
 
     @Autowired
     private ProspectoService prospectoService;
+
+    @Autowired
+    private ProspectoBusquedaService prospectoBusquedaService;
     //private ProspectoRepository prospectoRepository; // Inyección del repositorio
 
     //@GetMapping
@@ -92,6 +98,24 @@ public class ProspectoController {
     public ResponseEntity<Void> registrarComentario(@PathVariable Long id, @RequestBody String comentario) {
         prospectoService.registrarContacto(id, comentario);
         return ResponseEntity.ok().build();
+    }
+
+
+    @GetMapping("/busqueda")
+    public ResponseEntity<ProspectoBusquedaResponseDTO> buscarProspectos(
+            @RequestParam(name = "campania", required = false, defaultValue = "") String campania,
+            @RequestParam(name = "query", required = false, defaultValue = "") String textoBusqueda,
+            @RequestParam(name = "pagina", required = false, defaultValue = "1") Integer pagina,
+            @RequestParam(name = "tamanioPagina", required = false, defaultValue = "10") Integer tamanioPagina
+    ) {
+
+
+        return ResponseEntity.ok(prospectoBusquedaService.buscarProspectos(ProspectoBusquedaRequestDTO.builder()
+                .campania(campania)
+                .textoBusqueda(textoBusqueda)
+                .pagina(pagina > 0 ? pagina - 1 : 0)
+                .tamanioPagina(tamanioPagina)
+                .build()));
     }
 
 }

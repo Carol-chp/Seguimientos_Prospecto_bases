@@ -1,5 +1,6 @@
 package com.pe.swcotoschero.prospectos.Service;
 
+import com.pe.swcotoschero.prospectos.Entity.Campania;
 import com.pe.swcotoschero.prospectos.Entity.Personal;
 import com.pe.swcotoschero.prospectos.Entity.Prospecto;
 import com.pe.swcotoschero.prospectos.Repository.PersonalRepository;
@@ -62,14 +63,16 @@ public class ProspectoService {
             String[] datos = linea.split(",");
             Prospecto prospecto = new Prospecto();
             prospecto.setNombre(datos[0]);
-            prospecto.setApellidos(datos[1]);
+            prospecto.setApellido(datos[1]);
             prospecto.setCelular(datos[2]);
             prospecto.setDocumentoIdentidad(datos[3]);
             prospecto.setSexo(datos[4]);
             prospecto.setBanco(datos[5]);
             prospecto.setCargo(datos[6]);
             prospecto.setDistrito(datos[7]);
-            prospecto.setCampania(datos[8]);
+            Campania campania = new Campania();
+            campania.setDescripcion(datos[8]);
+            prospecto.setCampania(campania);
             prospecto.setSubcampania(datos[9]);
 
 
