@@ -1,1 +1,2 @@
-GET http://localhost:8081/api/prospectos/busqueda
+GET http://localhost:8081/api/prospectos/busqueda?pagina=1&tamanioPagina=2&campania=&query=
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJKQ09UT1MiLCJpYXQiOjE3MzU4Nzg2NzcsImV4cCI6MTczNTkwNzQ3N30.oVuF18RMbIU0SrshFGC5EfpXjUJVXB266boCRXxPOYI

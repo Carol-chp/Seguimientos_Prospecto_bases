@@ -1,0 +1,17 @@
+POST http://localhost:8081/api/auth/register
+Content-Type: application/json
+
+{
+    "usuario": "JCOTOS",
+    "password": "123456"
+}
+
+
+###
+POST http://localhost:8081/api/auth/login
+Content-Type: application/json
+
+{
+    "username": "JCOTOS",
+    "password": "123456"
+}

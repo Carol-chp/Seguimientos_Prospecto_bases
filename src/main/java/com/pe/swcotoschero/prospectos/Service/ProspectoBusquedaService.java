@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class ProspectoBusquedaService {
 
+
     private final ProspectoRepository prospectoRepository;
 
     public ProspectoBusquedaResponseDTO buscarProspectos(ProspectoBusquedaRequestDTO request) {

@@ -3,7 +3,6 @@ package com.pe.swcotoschero.prospectos.Service;
 import com.pe.swcotoschero.prospectos.Entity.Campania;
 import com.pe.swcotoschero.prospectos.Entity.Personal;
 import com.pe.swcotoschero.prospectos.Entity.Prospecto;
-import com.pe.swcotoschero.prospectos.Repository.PersonalRepository;
 import com.pe.swcotoschero.prospectos.Repository.ProspectoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -21,8 +20,6 @@ public class ProspectoService {
     @Autowired
     private ProspectoRepository prospectoRepository;
 
-    @Autowired
-    private PersonalRepository personalRepository;
 
     public List<Prospecto> getAllProspectos() {
         return prospectoRepository.findAll();
@@ -119,12 +116,12 @@ public class ProspectoService {
     public boolean asignarProspecto(Long prospectoId, Long personalId) {
         // Buscar prospecto y personal en los repositorios
         Prospecto prospecto = prospectoRepository.findById(prospectoId).orElse(null);
-        Personal personal = personalRepository.findById(personalId).orElse(null);
+//        Personal personal = personalRepository.findById(personalId).orElse(null);
 
         // Verificar si ambos existen
-        if (prospecto == null || personal == null) {
-            return false; // Si alguno no existe, no realizar la asignación
-        }
+//        if (prospecto == null || personal == null) {
+//            return false; // Si alguno no existe, no realizar la asignación
+//        }
 
         // Realizar la asignación
         prospecto.setPersonal(String.valueOf(personalId));

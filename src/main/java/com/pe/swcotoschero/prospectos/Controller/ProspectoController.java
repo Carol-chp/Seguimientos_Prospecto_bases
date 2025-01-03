@@ -9,6 +9,7 @@ import com.pe.swcotoschero.prospectos.Entity.Prospecto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -101,6 +102,7 @@ public class ProspectoController {
     }
 
 
+    @PreAuthorize("hasAnyRole('TELEOPERADOR', 'ADMINISTRADOR')")
     @GetMapping("/busqueda")
     public ResponseEntity<ProspectoBusquedaResponseDTO> buscarProspectos(
             @RequestParam(name = "campania", required = false, defaultValue = "") String campania,
@@ -110,7 +112,8 @@ public class ProspectoController {
     ) {
 
 
-        return ResponseEntity.ok(prospectoBusquedaService.buscarProspectos(ProspectoBusquedaRequestDTO.builder()
+        return ResponseEntity.ok(prospectoBusquedaService.buscarProspectos(
+                ProspectoBusquedaRequestDTO.builder()
                 .campania(campania)
                 .textoBusqueda(textoBusqueda)
                 .pagina(pagina > 0 ? pagina - 1 : 0)
