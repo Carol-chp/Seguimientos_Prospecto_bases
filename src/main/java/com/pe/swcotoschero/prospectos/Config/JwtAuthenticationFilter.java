@@ -34,11 +34,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
         final String userEmail;
+        final String requestUri = request.getRequestURI();
 
         log.info("Request URI: " + request.getRequestURI());
         log.info("Authorization Header: " + request.getHeader("Authorization"));
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            chain.doFilter(request, response);
+            return;
+        }
+        if (requestUri.equals("/api/auth/**") ||
+                requestUri.equals("/api/prospectos/test") ||
+                requestUri.equals("/api/prospectos/importar")) {
+            log.info("Saltando filtro JWT para la ruta pública: " + requestUri);
             chain.doFilter(request, response);
             return;
         }

@@ -38,7 +38,7 @@ public class AsignacionService {
         asignacionRepository.deleteById(id);
     }
 
-    public boolean asignarProspecto(Long prospectoId, Long personalId) {
+    /*public boolean asignarProspecto(Long prospectoId, Long personalId) {
         // Buscar prospecto y personal
         Prospecto prospecto = prospectoRepository.findById(prospectoId).orElse(null);
 //        Personal personal = personalRepository.findById(personalId).orElse(null);
@@ -49,9 +49,9 @@ public class AsignacionService {
 //        }
 
         // Realizar la asignación
-        prospecto.setPersonal(String.valueOf(personalId));
+       prospecto.setPersonal(String.valueOf(personalId));
         prospectoRepository.save(prospecto);  // Guardar los cambios
 
         return true;  // Si todo fue exitoso, retornar true
-    }
+    }*/
 }

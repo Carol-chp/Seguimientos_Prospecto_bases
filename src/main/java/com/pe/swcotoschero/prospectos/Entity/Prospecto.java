@@ -48,4 +48,19 @@ public class Prospecto {
     @Transient
     private String personal;
 
+    @Override
+    public String toString() {
+        return "Prospecto{" +
+                "nombre='" + nombre + '\'' +
+                ", apellidos='" + apellido + '\'' +
+                ", celular='" + celular + '\'' +
+                ", documentoIdentidad='" + documentoIdentidad + '\'' +
+                ", sexo='" + sexo + '\'' +
+                ", banco='" + banco + '\'' +
+                ", cargo='" + cargo + '\'' +
+                ", distrito='" + distrito + '\'' +
+                ", campania='" + campania + '\'' +
+                ", subcampania='" + subcampania + '\'' +
+                '}';
+    }
 }

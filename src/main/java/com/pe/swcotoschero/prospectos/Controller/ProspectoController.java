@@ -6,6 +6,7 @@ import com.pe.swcotoschero.prospectos.dto.ProspectoBusquedaRequestDTO;
 import com.pe.swcotoschero.prospectos.dto.ProspectoBusquedaResponseDTO;
 import com.pe.swcotoschero.prospectos.helper.ExcelHelper;
 import com.pe.swcotoschero.prospectos.Entity.Prospecto;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +21,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/prospectos")
+@Slf4j // Esto habilita el logger
 public class ProspectoController {
 
     @Autowired
@@ -29,64 +31,38 @@ public class ProspectoController {
     private ProspectoBusquedaService prospectoBusquedaService;
     //private ProspectoRepository prospectoRepository; // Inyección del repositorio
 
-    //@GetMapping
-   // public ResponseEntity<List<Prospecto>> listarProspectos() {
-        //return ResponseEntity.ok(prospectoService.listarTodos());
-   // }
-
-    @GetMapping
-    public ResponseEntity<List<Prospecto>> getAllProspectos() {
-        return ResponseEntity.ok(prospectoService.getAllProspectos());
-    }
-
-    @PostMapping("/upload")
-    public ResponseEntity<String> uploadProspectos(@RequestParam("file") MultipartFile file) {
-        try {
-            List<Prospecto> prospectos = ExcelHelper.parseExcel(file.getInputStream());
-            prospectoService.saveAllProspectos(prospectos);
-            return ResponseEntity.ok("Archivo procesado y prospectos guardados correctamente.");
-        } catch (IOException e) {
-            return ResponseEntity.badRequest().body("Error al procesar el archivo.");
-        }
-    }
-
-   // @PostMapping
-   // public ResponseEntity<Prospecto> crearProspecto(@RequestBody Prospecto prospecto) {
-     //   return ResponseEntity.ok(prospectoService.crearProspecto(prospecto));
-  //  }
-
-    @PostMapping
-    public ResponseEntity<String> crearProspecto(@RequestBody Prospecto prospecto) {
-
-
-        // Lógica para crear un nuevo prospecto
-        // Guardar el prospecto en la base de datos
-        //prospectoRepository.save(prospecto);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body("Prospecto creado correctamente");
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<Prospecto> actualizarProspecto(@PathVariable Long id, @RequestBody Prospecto prospecto) {
-        return ResponseEntity.ok(prospectoService.actualizarProspecto(id, prospecto));
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<String> eliminarProspecto(@PathVariable Long id) {
-        prospectoService.eliminarProspecto(id);
-        return ResponseEntity.ok("Prospecto eliminado exitosamente.");
-    }
 
 
     @PostMapping("/importar")
-    public ResponseEntity<String> importarArchivo(@RequestParam("archivo") MultipartFile archivo) {
-        try (InputStream archivoExcel = archivo.getInputStream()) {
-            prospectoService.importarProspectosDesdeExcel(archivoExcel);
-            return ResponseEntity.ok("Archivo importado exitosamente");
+    public ResponseEntity<String> importarProspectosDesdeExcel(@RequestParam("file") MultipartFile file) {
+
+        log.info("Archivo recibido: " + file.getOriginalFilename());
+        try {
+            // Validar si el archivo está vacío
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest().body("El archivo está vacío. Por favor, sube un archivo válido.");
+            }
+
+            // Validar si el archivo tiene formato .xlsx
+            if (!file.getOriginalFilename().endsWith(".xlsx")) {
+                return ResponseEntity.badRequest().body("Formato de archivo no soportado. Solo se permiten archivos con extensión .xlsx.");
+            }
+
+            // Procesar el archivo
+            List<Prospecto> prospectos = prospectoService.importarProspectosDesdeExcel(file.getInputStream());
+            return ResponseEntity.ok("Se importaron " + prospectos.size() + " prospectos correctamente.");
         } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al importar archivo");
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Error al leer el archivo: " + e.getMessage());
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al procesar el archivo: " + e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error inesperado: " + e.getMessage());
         }
     }
+
 
 
 
@@ -95,11 +71,11 @@ public class ProspectoController {
         return ResponseEntity.ok("El controlador funciona correctamente");
     }
 
-    @PostMapping("/{id}/comentario")
+    /*@PostMapping("/{id}/comentario")
     public ResponseEntity<Void> registrarComentario(@PathVariable Long id, @RequestBody String comentario) {
         prospectoService.registrarContacto(id, comentario);
         return ResponseEntity.ok().build();
-    }
+    }*/
 
 
     @PreAuthorize("hasAnyRole('TELEOPERADOR', 'ADMINISTRADOR')")

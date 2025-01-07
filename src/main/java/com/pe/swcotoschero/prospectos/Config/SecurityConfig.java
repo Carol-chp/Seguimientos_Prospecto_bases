@@ -2,6 +2,7 @@ package com.pe.swcotoschero.prospectos.Config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -19,11 +20,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtFilter) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable) // Deshabilitar CSRF
-                .authorizeHttpRequests(auth -> auth
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll()); // Permitir todo temporalmente
+               /* .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll() // Rutas públicas
+                        .requestMatchers("/api/prospectos/test").permitAll()
+                        .requestMatchers(HttpMethod.POST,"/api/prospectos/importar").permitAll()
                         .anyRequest().authenticated() // Todas las demás rutas requieren autenticación
                 )
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class); // Agregar el filtro de JWT
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class); */// Agregar el filtro de JWT
         return http.build();
     }
 

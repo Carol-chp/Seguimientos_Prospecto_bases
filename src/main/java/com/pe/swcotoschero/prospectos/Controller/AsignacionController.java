@@ -12,7 +12,7 @@ public class AsignacionController {
     @Autowired
     private AsignacionService asignacionService;
 
-    @PostMapping
+   /* @PostMapping
     public ResponseEntity<String> asignarProspecto(@RequestParam Long prospectoId, @RequestParam Long personalId) {
         boolean asignado = asignacionService.asignarProspecto(prospectoId, personalId);
 
@@ -21,5 +21,5 @@ public class AsignacionController {
         } else {
             return ResponseEntity.status(400).body("Error al realizar la asignación. Verifique los datos.");
         }
-    }
+    }*/
 }

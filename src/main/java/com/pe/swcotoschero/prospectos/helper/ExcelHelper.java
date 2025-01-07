@@ -13,7 +13,7 @@ import java.util.List;
 
 public class ExcelHelper {
 
-    public static List<Prospecto> parseExcel(InputStream is) {
+   /* public static List<Prospecto> parseExcel(InputStream is) {
         List<Prospecto> prospectos = new ArrayList<>();
         try (Workbook workbook = new XSSFWorkbook(is)) {
             Sheet sheet = workbook.getSheetAt(0);
@@ -38,5 +38,5 @@ public class ExcelHelper {
             e.printStackTrace();
         }
         return prospectos;
-    }
+    }*/
 }
