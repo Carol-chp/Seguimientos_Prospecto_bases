@@ -2,6 +2,7 @@ package com.pe.swcotoschero.prospectos.Controller;
 
 import com.pe.swcotoschero.prospectos.Service.ProspectoBusquedaService;
 import com.pe.swcotoschero.prospectos.Service.ProspectoService;
+import com.pe.swcotoschero.prospectos.dto.ArchivoBase64Request;
 import com.pe.swcotoschero.prospectos.dto.ProspectoBusquedaRequestDTO;
 import com.pe.swcotoschero.prospectos.dto.ProspectoBusquedaResponseDTO;
 import com.pe.swcotoschero.prospectos.helper.ExcelHelper;
@@ -14,9 +15,12 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import java.util.Base64;
 import java.util.List;
 
 @RestController
@@ -34,32 +38,28 @@ public class ProspectoController {
 
 
     @PostMapping("/importar")
-    public ResponseEntity<String> importarProspectosDesdeExcel(@RequestParam("file") MultipartFile file) {
-
-        log.info("Archivo recibido: " + file.getOriginalFilename());
+    public ResponseEntity<String> importarProspectosDesdeBase64(@RequestBody ArchivoBase64Request request) {
         try {
-            // Validar si el archivo está vacío
-            if (file.isEmpty()) {
-                return ResponseEntity.badRequest().body("El archivo está vacío. Por favor, sube un archivo válido.");
+            // Decodificar el contenido Base64
+            byte[] decodedBytes = Base64.getDecoder().decode(request.getFileContent());
+
+            // Crear un archivo temporal para procesarlo
+            File tempFile = File.createTempFile("temp-prospects", ".xlsx");
+            try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                fos.write(decodedBytes);
             }
 
-            // Validar si el archivo tiene formato .xlsx
-            if (!file.getOriginalFilename().endsWith(".xlsx")) {
-                return ResponseEntity.badRequest().body("Formato de archivo no soportado. Solo se permiten archivos con extensión .xlsx.");
-            }
+            // Aquí puedes procesar el archivo como prefieras
+            System.out.println("Archivo procesado: " + tempFile.getAbsolutePath());
 
-            // Procesar el archivo
-            List<Prospecto> prospectos = prospectoService.importarProspectosDesdeExcel(file.getInputStream());
-            return ResponseEntity.ok("Se importaron " + prospectos.size() + " prospectos correctamente.");
+            // Eliminar el archivo temporal después del uso
+            tempFile.delete();
+
+            return ResponseEntity.ok("Archivo importado exitosamente");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Error al decodificar el archivo Base64: " + e.getMessage());
         } catch (IOException e) {
-            e.printStackTrace();
-            return ResponseEntity.badRequest().body("Error al leer el archivo: " + e.getMessage());
-        } catch (RuntimeException e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al procesar el archivo: " + e.getMessage());
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error inesperado: " + e.getMessage());
+            return ResponseEntity.status(500).body("Error al procesar el archivo: " + e.getMessage());
         }
     }
 
