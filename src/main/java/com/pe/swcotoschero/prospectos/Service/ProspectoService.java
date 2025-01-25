@@ -3,24 +3,37 @@ package com.pe.swcotoschero.prospectos.Service;
 import com.pe.swcotoschero.prospectos.Entity.Campania;
 import com.pe.swcotoschero.prospectos.Entity.Personal;
 import com.pe.swcotoschero.prospectos.Entity.Prospecto;
+import com.pe.swcotoschero.prospectos.Repository.CampaniaRepository;
 import com.pe.swcotoschero.prospectos.Repository.ProspectoRepository;
+import com.pe.swcotoschero.prospectos.dto.ArchivoBase64Request;
+import com.pe.swcotoschero.prospectos.dto.ProspectoDTO;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class ProspectoService {
 
-    @Autowired
-    private ProspectoRepository prospectoRepository;
+    private final ProspectoRepository prospectoRepository;
+    private final ExcelUploadService excelUploadService;
+    private final CampaniaRepository campaniaRepository;
 
 
     public List<Prospecto> getAllProspectos() {
@@ -38,7 +51,67 @@ public class ProspectoService {
 
 
 
+    public void importartDesdeExcel(ArchivoBase64Request request){
+        try {
+            // Decodificar el contenido Base64
+            byte[] decodedBytes = Base64.getDecoder().decode(request.getFileContent());
 
+            // Crear un archivo temporal para procesarlo
+            File tempFile = File.createTempFile("temp-prospects", ".xlsx");
+            try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                fos.write(decodedBytes);
+            }
+
+            // Aquí puedes procesar el archivo como prefieras
+
+            List<ProspectoDTO> prospectos = excelUploadService.leerExcel(tempFile);
+            // Eliminar el archivo temporal después del uso
+            log.info("Archivo importado exitosamente");
+            log.info("Prospectos importados: " + prospectos.size());
+            prospectos.forEach(prospecto -> {
+                log.info("Nombre: " + prospecto.getNombre());
+                log.info("Apellido: " + prospecto.getApellido());
+                log.info("Celular: " + prospecto.getCelular());
+                log.info("Documento Identidad: " + prospecto.getDocumentoIdentidad());
+                log.info("Campania: " + prospecto.getCampania());
+            });
+
+            List<Prospecto> prospectosMapeados = mapFromDto(prospectos);
+            prospectoRepository.saveAll(prospectosMapeados);
+            tempFile.delete();
+
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Error al decodificar el archivo Base64: " + e.getMessage());
+        } catch (IOException e) {
+            throw new RuntimeException("Error al procesar el archivo: " + e.getMessage());
+        }
+    }
+
+    private List<Prospecto> mapFromDto(List<ProspectoDTO> prospectos) {
+        HashMap<String, Campania> campanias = new HashMap<>();
+        List<Prospecto> result = new ArrayList<>();
+        List<String> campaniasNombres = prospectos.stream().map(ProspectoDTO::getCampania).toList();
+        campaniasNombres.forEach(campaniaNombre -> {
+            Campania campania = campaniaRepository.findByNombre(campaniaNombre).orElse(null);
+            if (campania == null) {
+                campania = new Campania();
+                campania.setNombre(campaniaNombre);
+                campaniaRepository.save(campania);
+            }
+            campanias.put(campaniaNombre, campania);
+        });
+        prospectos.forEach(prospecto -> {
+            Prospecto p = new Prospecto();
+            p.setNombre(prospecto.getNombre());
+            p.setApellido(prospecto.getApellido());
+            p.setCelular(prospecto.getCelular());
+            p.setDocumentoIdentidad(prospecto.getDocumentoIdentidad());
+            p.setCampania(campanias.get(prospecto.getCampania()));
+            p.setDistrito(prospecto.getDistrito());
+            result.add(p);
+        });
+        return result;
+    }
     public List<Prospecto> importarProspectosDesdeExcel(InputStream archivoExcel) throws IOException {
         List<Prospecto> prospectos = new ArrayList<>();
 

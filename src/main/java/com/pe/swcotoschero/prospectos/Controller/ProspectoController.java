@@ -40,26 +40,11 @@ public class ProspectoController {
     @PostMapping("/importar")
     public ResponseEntity<String> importarProspectosDesdeBase64(@RequestBody ArchivoBase64Request request) {
         try {
-            // Decodificar el contenido Base64
-            byte[] decodedBytes = Base64.getDecoder().decode(request.getFileContent());
-
-            // Crear un archivo temporal para procesarlo
-            File tempFile = File.createTempFile("temp-prospects", ".xlsx");
-            try (FileOutputStream fos = new FileOutputStream(tempFile)) {
-                fos.write(decodedBytes);
-            }
-
-            // Aquí puedes procesar el archivo como prefieras
-            System.out.println("Archivo procesado: " + tempFile.getAbsolutePath());
-
-            // Eliminar el archivo temporal después del uso
-            tempFile.delete();
+            prospectoService.importartDesdeExcel(request);
 
             return ResponseEntity.ok("Archivo importado exitosamente");
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("Error al decodificar el archivo Base64: " + e.getMessage());
-        } catch (IOException e) {
-            return ResponseEntity.status(500).body("Error al procesar el archivo: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body( e.getMessage());
         }
     }
 
