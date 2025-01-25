@@ -20,14 +20,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtFilter) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable) // Deshabilitar CSRF
-                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll()); // Permitir todo temporalmente
-               /* .authorizeHttpRequests(auth -> auth
+                .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll() // Rutas públicas
                         .requestMatchers("/api/prospectos/test").permitAll()
                         .requestMatchers(HttpMethod.POST,"/api/prospectos/importar").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .anyRequest().authenticated() // Todas las demás rutas requieren autenticación
                 )
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class); */// Agregar el filtro de JWT
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class); // Agregar el filtro de JWT
         return http.build();
     }
 

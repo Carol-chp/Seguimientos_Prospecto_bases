@@ -3,6 +3,7 @@ package com.pe.swcotoschero.prospectos.Controller;
 import com.pe.swcotoschero.prospectos.Service.JwtService;
 import com.pe.swcotoschero.prospectos.Service.UsuarioService;
 import com.pe.swcotoschero.prospectos.dto.AuthRequest;
+import com.pe.swcotoschero.prospectos.dto.LoginResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -28,13 +29,13 @@ public class AuthController {
 
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody AuthRequest request) {
+    public ResponseEntity<?> login(@RequestBody AuthRequest request) throws InterruptedException {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = jwtService.generateToken((UserDetails) authentication.getPrincipal());
-        return ResponseEntity.ok((jwt));
+        return ResponseEntity.ok((LoginResponseDTO.builder().token(jwt).build()));
     }
 
     @PostMapping("/register")

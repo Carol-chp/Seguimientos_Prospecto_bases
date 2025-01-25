@@ -36,8 +36,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String userEmail;
         final String requestUri = request.getRequestURI();
 
+        // Ignorar solicitudes OPTIONS
+        if (request.getMethod().equalsIgnoreCase("OPTIONS")) {
+            chain.doFilter(request, response);
+            return;
+        }
         log.info("Request URI: " + request.getRequestURI());
         log.info("Authorization Header: " + request.getHeader("Authorization"));
+
+
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             chain.doFilter(request, response);
