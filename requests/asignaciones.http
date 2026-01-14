@@ -1,0 +1,40 @@
+### Asignar carga masiva a usuario
+POST http://localhost:8081/api/asignaciones/asignar-carga-masiva
+Content-Type: application/x-www-form-urlencoded
+
+cargaMasivaId=1&usuarioId=1
+
+### Asignar carga masiva a usuario (ejemplo con otros IDs)
+POST http://localhost:8081/api/asignaciones/asignar-carga-masiva
+Content-Type: application/x-www-form-urlencoded
+
+cargaMasivaId=2&usuarioId=2
+
+### Obtener estadísticas de asignaciones
+GET http://localhost:8081/api/asignaciones/estadisticas
+
+### Ejemplo de respuesta exitosa de asignación:
+# {
+#   "success": true,
+#   "mensaje": "Asignación completada exitosamente",
+#   "cargaMasivaId": 1,
+#   "cargaMasivaNombre": "archivo_prospectos.xlsx",
+#   "usuarioId": 1,
+#   "usuarioNombre": "Juan Pérez",
+#   "totalProspectos": 150,
+#   "nuevasAsignaciones": 120,
+#   "reasignaciones": 30,
+#   "fechaAsignacion": "2025-01-10T15:30:45"
+# }
+
+### Ejemplo de respuesta de estadísticas:
+# {
+#   "totalAsignaciones": 450,
+#   "pendientes": 200,
+#   "reasignadas": 50,
+#   "completadas": 200,
+#   "totalProspectos": 500,
+#   "totalCargasMasivas": 5,
+#   "totalUsuarios": 10,
+#   "porcentajeAsignado": 90.0
+# }

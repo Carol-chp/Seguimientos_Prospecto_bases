@@ -1,0 +1,51 @@
+### Listar todas las cargas masivas
+GET http://localhost:8081/api/cargas-masivas
+
+### Obtener una carga masiva específica
+GET http://localhost:8081/api/cargas-masivas/1
+
+### Obtener cargas masivas sin asignar
+GET http://localhost:8081/api/cargas-masivas/sin-asignar
+
+### Obtener cargas masivas asignadas a un usuario específico
+GET http://localhost:8081/api/cargas-masivas/usuario/1
+
+### Obtener estadísticas de cargas masivas
+GET http://localhost:8081/api/cargas-masivas/estadisticas
+
+### Ejemplo de respuesta de listado de cargas masivas:
+# [
+#   {
+#     "id": 1,
+#     "nombrearchivo": "prospectos_enero.xlsx",
+#     "fecha": "2025-01-01T10:30:00",
+#     "cantidadProspectos": 150,
+#     "estadoAsignacion": "ASIGNADO",
+#     "fechaAsignacion": "2025-01-05T14:20:00",
+#     "usuarioAsignadoId": 1,
+#     "usuarioAsignadoNombre": "Juan",
+#     "usuarioAsignadoApellidos": "Pérez",
+#     "usuarioAsignadoCompleto": "Juan Pérez"
+#   },
+#   {
+#     "id": 2,
+#     "nombrearchivo": "prospectos_febrero.xlsx",
+#     "fecha": "2025-02-01T09:15:00",
+#     "cantidadProspectos": 203,
+#     "estadoAsignacion": "SIN_ASIGNAR",
+#     "fechaAsignacion": null,
+#     "usuarioAsignadoId": null,
+#     "usuarioAsignadoNombre": null,
+#     "usuarioAsignadoApellidos": null,
+#     "usuarioAsignadoCompleto": null
+#   }
+# ]
+
+### Ejemplo de respuesta de estadísticas:
+# {
+#   "totalCargas": 5,
+#   "cargasSinAsignar": 2,
+#   "cargasAsignadas": 3,
+#   "totalProspectos": 750,
+#   "porcentajeAsignado": 60.0
+# }

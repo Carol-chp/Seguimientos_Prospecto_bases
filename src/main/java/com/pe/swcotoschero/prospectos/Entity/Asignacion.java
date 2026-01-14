@@ -26,7 +26,11 @@ public class Asignacion {
 
     @ManyToOne
     @JoinColumn(name = "personal_id", nullable = false)
-    private Personal personal;
+    private Usuario usuario;
+
+    @ManyToOne
+    @JoinColumn(name = "administrador_id", nullable = false)
+    private Usuario administrador;
 
     @Column(name = "fecha_asignacion")
     private LocalDateTime fechaAsignacion = LocalDateTime.now();
@@ -60,12 +64,12 @@ public class Asignacion {
         this.prospecto = prospecto;
     }
 
-    public Personal getPersonal() {
-        return personal;
+    public Usuario getUsuario() {
+        return usuario;
     }
 
-    public void setPersonal(Personal personal) {
-        this.personal = personal;
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
     }
 
     public LocalDateTime getFechaAsignacion() {
@@ -82,6 +86,14 @@ public class Asignacion {
 
     public void setEstado(String estado) {
         this.estado = estado;
+    }
+
+    public Usuario getAdministrador() {
+        return administrador;
+    }
+
+    public void setAdministrador(Usuario administrador) {
+        this.administrador = administrador;
     }
 
 }

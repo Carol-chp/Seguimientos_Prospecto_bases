@@ -8,12 +8,15 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
 @Entity
+@Getter
+@Setter
 @Table(name = "Contacto")
-
 public class Contacto {
 
     @Id
@@ -29,37 +32,11 @@ public class Contacto {
     private LocalDateTime fechaContacto = LocalDateTime.now();
 
     private String comentario;
+    
+    @Column(name = "contesto_llamada")
+    private Boolean contestoLlamada;
+    
+    @Column(name = "interesado")
+    private Boolean interesado;
 
-    // Getters y Setters
-    public Integer getContactoID() {
-        return contactoID;
-    }
-
-    public void setContactoID(Integer contactoID) {
-        this.contactoID = contactoID;
-    }
-
-    public Asignacion getAsignacion() {
-        return asignacion;
-    }
-
-    public void setAsignacion(Asignacion asignacion) {
-        this.asignacion = asignacion;
-    }
-
-    public LocalDateTime getFechaContacto() {
-        return fechaContacto;
-    }
-
-    public void setFechaContacto(LocalDateTime fechaContacto) {
-        this.fechaContacto = fechaContacto;
-    }
-
-    public String getComentario() {
-        return comentario;
-    }
-
-    public void setComentario(String comentario) {
-        this.comentario = comentario;
-    }
 }

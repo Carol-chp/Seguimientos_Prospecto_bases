@@ -44,4 +44,37 @@ public class ProspectoBusquedaService {
                         .build()).collect(java.util.stream.Collectors.toList()))
                 .build();
     }
+    
+    public ProspectoBusquedaResponseDTO buscarProspectosInteresados(ProspectoBusquedaRequestDTO request) {
+        Pageable pageable = PageRequest.of(request.getPagina(), request.getTamanioPagina());
+        Page<Prospecto> page;
+        
+        // Si hay filtros de búsqueda, usar la consulta con filtros
+        if ((request.getCampania() != null && !request.getCampania().isEmpty()) || 
+            (request.getTextoBusqueda() != null && !request.getTextoBusqueda().isEmpty())) {
+            page = prospectoRepository.findProspectosInteresados(request.getCampania(), request.getTextoBusqueda(), pageable);
+        } else {
+            // Si no hay filtros, obtener todos los interesados
+            page = prospectoRepository.findProspectosInteresados(pageable);
+        }
+        
+        log.info("Prospectos interesados encontrados: " + page.getContent().size());
+        return ProspectoBusquedaResponseDTO.builder()
+                .pagina(page.getNumber() + 1)
+                .tamanioPagina(page.getSize())
+                .total(page.getTotalElements())
+                .resultados(page.getContent().stream().map(entity -> ProspectoDTO.builder()
+                        .id(entity.getProspectoID())
+                        .nombre(entity.getNombre())
+                        .apellido(entity.getApellido())
+                        .celular(entity.getCelular())
+                        .documentoIdentidad(entity.getDocumentoIdentidad())
+                        .sexo(entity.getSexo())
+                        .cargo(entity.getCargo())
+                        .distrito(entity.getDistrito())
+                        .campania(entity.getCampania().getDescripcion())
+                        .subcampania(entity.getSubcampania())
+                        .build()).collect(java.util.stream.Collectors.toList()))
+                .build();
+    }
 }

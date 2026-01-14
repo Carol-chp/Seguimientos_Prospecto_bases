@@ -39,8 +39,15 @@ public class Prospecto {
     @JoinColumn(name = "campania_id")
     private Campania campania;
 
+    @ManyToOne
+    @JoinColumn(name = "idcargamasiva")
+    private CargaMasiva cargaMasiva;
+
     @Column(name = "subcampania") // Ajuste para evitar problemas con tildes
     private String subcampania;
+    
+    @Column(name = "estado_interesado")
+    private Boolean estadoInteresado;
 
     @Transient
     private String comentario;

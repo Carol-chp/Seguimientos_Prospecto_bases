@@ -94,3 +94,21 @@ insert into prospecto (nombre, apellido, celular, documentoidentidad, sexo, banc
 insert into prospecto (nombre, apellido, celular, documentoidentidad, sexo, banco, cargo, distrito, campania_id, subcampania) values ('Pedro', 'Perez', '961092025', '48201874', 'M', 'Banco', 'Cargo', 'Distrito', 2, 'Subcampania');
 insert into prospecto (nombre, apellido, celular, documentoidentidad, sexo, banco, cargo, distrito, campania_id, subcampania) values ('Carlos', 'Perez', '961092026', '48201875', 'M', 'Banco', 'Cargo', 'Distrito', 3, 'Subcampania');
 
+create table public.cargamasiva(
+                                   id serial,
+                                   nombrearchivo character varying(255),
+                                   fecha timestamp without time zone,
+                                   constraint cargamasiva_pkey primary key (id)
+);
+
+alter table public.prospecto add column idcargamasiva integer;
+alter table public.prospecto add constraint prospecto_idcargamasiva_fkey
+    foreign key (idcargamasiva) references public.cargamasiva(id);
+alter table public.contacto add column interesado boolean default false;
+alter table public.prospecto add column estado_interesado boolean default false;
+
+alter table public.cargamasiva add column usuario_asignado_id integer;
+alter table public.cargamasiva add column usuario_asignado_id integer;
+alter table public.cargamasiva add column cantidad_prospectos integer;
+alter table public.cargamasiva add column estado_asignacion character varying(100);
+alter table public.cargamasiva add column fecha_asignacion timestamp without time zone;

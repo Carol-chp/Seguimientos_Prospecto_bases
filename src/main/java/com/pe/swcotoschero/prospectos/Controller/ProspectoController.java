@@ -81,5 +81,22 @@ public class ProspectoController {
                 .tamanioPagina(tamanioPagina)
                 .build()));
     }
+    
+    @PreAuthorize("hasAnyRole('TELEOPERADOR', 'ADMINISTRADOR')")
+    @GetMapping("/interesados")
+    public ResponseEntity<ProspectoBusquedaResponseDTO> buscarProspectosInteresados(
+            @RequestParam(name = "campania", required = false, defaultValue = "") String campania,
+            @RequestParam(name = "query", required = false, defaultValue = "") String textoBusqueda,
+            @RequestParam(name = "pagina", required = false, defaultValue = "1") Integer pagina,
+            @RequestParam(name = "tamanioPagina", required = false, defaultValue = "10") Integer tamanioPagina
+    ) {
+        return ResponseEntity.ok(prospectoBusquedaService.buscarProspectosInteresados(
+                ProspectoBusquedaRequestDTO.builder()
+                .campania(campania)
+                .textoBusqueda(textoBusqueda)
+                .pagina(pagina > 0 ? pagina - 1 : 0)
+                .tamanioPagina(tamanioPagina)
+                .build()));
+    }
 
 }
