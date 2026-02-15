@@ -21,4 +21,10 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Long> {
      * Cuenta asignaciones por estado
      */
     long countByEstado(String estado);
+
+    /**
+     * Verifica si existen asignaciones para un usuario (como personal o administrador)
+     */
+    boolean existsByUsuario_Id(Long usuarioId);
+    boolean existsByAdministrador_Id(Long administradorId);
 }

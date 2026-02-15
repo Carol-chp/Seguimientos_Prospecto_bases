@@ -184,6 +184,36 @@ public class UsuarioController {
     }
 
     /**
+     * Eliminar usuario permanentemente (hard delete)
+     */
+    @DeleteMapping("/{id}/eliminar")
+    public ResponseEntity<?> eliminarUsuario(@PathVariable Long id) {
+        try {
+            log.info("Solicitud para eliminar permanentemente usuario con ID: {}", id);
+            usuarioService.eliminarUsuario(id);
+            log.info("Usuario eliminado permanentemente con ID: {}", id);
+            Map<String, String> response = new HashMap<>();
+            response.put("mensaje", "Usuario eliminado permanentemente");
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            log.warn("Error al eliminar usuario con ID {}: {}", id, e.getMessage());
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            error.put("code", "VALIDATION_ERROR");
+            if (e.getMessage().contains("no encontrado")) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+            }
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            log.error("Error inesperado al eliminar usuario con ID {}: {}", id, e.getMessage(), e);
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Error al procesar la solicitud");
+            error.put("code", "INTERNAL_ERROR");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+
+    /**
      * Manejo global de errores de validación
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)

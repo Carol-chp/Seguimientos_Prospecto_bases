@@ -83,6 +83,7 @@ insert into rol (nombre) values ('ADMINISTRADOR');
 insert into rol (nombre) values ('TELEOPERADOR');
 
 INSERT INTO public.usuario (id, usuario, password, nombre, apellidos, correo, idrol, estado) VALUES (1, 'JCOTOS', '$2a$10$pfl1ty2Bi4hGqU0edGd73.14tVkYb/s3jEGqXKSiWdBEPor3gIN9C', 'Johnny', 'Cotos', 'jrcotos@gmail.com', 1, true);
+SELECT setval('usuario_id_seq', (SELECT MAX(id) FROM usuario));
 
 
 insert into campania (nombre, descripcion) values ('Minedu', 'campania1');

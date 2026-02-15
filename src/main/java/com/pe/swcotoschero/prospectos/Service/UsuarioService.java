@@ -2,6 +2,7 @@ package com.pe.swcotoschero.prospectos.Service;
 
 import com.pe.swcotoschero.prospectos.Entity.Rol;
 import com.pe.swcotoschero.prospectos.Entity.Usuario;
+import com.pe.swcotoschero.prospectos.Repository.AsignacionRepository;
 import com.pe.swcotoschero.prospectos.Repository.RolRepository;
 import com.pe.swcotoschero.prospectos.Repository.UsuarioRepository;
 import com.pe.swcotoschero.prospectos.dto.CreateUsuarioRequestDTO;
@@ -23,6 +24,7 @@ public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final RolRepository rolRepository;
+    private final AsignacionRepository asignacionRepository;
     private final PasswordEncoder passwordEncoder;
     
     // ID del rol de administrador (según datos de la BD)
@@ -233,6 +235,42 @@ public class UsuarioService {
         } catch (Exception e) {
             log.error("Error al desactivar usuario con ID {}: {}", id, e.getMessage(), e);
             throw new RuntimeException("Error al desactivar el usuario. Por favor, intente nuevamente.");
+        }
+    }
+
+    /**
+     * Eliminar usuario permanentemente (hard delete)
+     * Solo permite eliminar si el usuario no tiene asignaciones asociadas
+     */
+    @Transactional
+    public void eliminarUsuario(Long id) {
+        try {
+            log.info("Iniciando eliminación permanente del usuario con ID: {}", id);
+
+            Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.error("Usuario no encontrado con ID: {}", id);
+                    return new IllegalArgumentException("Usuario no encontrado");
+                });
+
+            // Verificar que no tenga asignaciones como personal o administrador
+            boolean tieneAsignaciones = asignacionRepository.existsByUsuario_Id(id)
+                || asignacionRepository.existsByAdministrador_Id(id);
+
+            if (tieneAsignaciones) {
+                throw new IllegalArgumentException(
+                    "No se puede eliminar el usuario porque tiene asignaciones asociadas. Desactívelo en su lugar.");
+            }
+
+            usuarioRepository.delete(usuario);
+            log.info("Usuario eliminado permanentemente con ID: {} y username: {}",
+                id, usuario.getUsuario());
+
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error al eliminar usuario con ID {}: {}", id, e.getMessage(), e);
+            throw new RuntimeException("Error al eliminar el usuario. Por favor, intente nuevamente.");
         }
     }
 

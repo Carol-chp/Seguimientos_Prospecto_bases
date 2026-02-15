@@ -1,5 +1,7 @@
 package com.pe.swcotoschero.prospectos.Controller;
 
+import com.pe.swcotoschero.prospectos.Entity.Usuario;
+import com.pe.swcotoschero.prospectos.Repository.UsuarioRepository;
 import com.pe.swcotoschero.prospectos.Service.JwtService;
 import com.pe.swcotoschero.prospectos.Service.UsuarioService;
 import com.pe.swcotoschero.prospectos.dto.AuthRequest;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final UsuarioService usuarioService;
+    private final UsuarioRepository usuarioRepository;
 
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
@@ -34,8 +37,14 @@ public class AuthController {
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = jwtService.generateToken((UserDetails) authentication.getPrincipal());
-        return ResponseEntity.ok((LoginResponseDTO.builder().token(jwt).build()));
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        String jwt = jwtService.generateToken(userDetails);
+
+        String rol = usuarioRepository.findByUsuarioAndEstado(userDetails.getUsername(), true)
+                .map(u -> u.getRol().getNombre())
+                .orElse("");
+
+        return ResponseEntity.ok(LoginResponseDTO.builder().token(jwt).rol(rol).build());
     }
 
     @PostMapping("/register")
