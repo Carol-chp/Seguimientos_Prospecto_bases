@@ -70,7 +70,7 @@ CREATE TABLE public.asignacion
 
 CREATE TABLE public.contacto
 (
-    id              integer NOT NULL,
+    id              serial NOT NULL,
     asignacion_id   integer NOT NULL,
     fecha_contacto  timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     comentario      character varying(50),
@@ -105,6 +105,7 @@ alter table public.prospecto add column idcargamasiva integer;
 alter table public.prospecto add constraint prospecto_idcargamasiva_fkey
     foreign key (idcargamasiva) references public.cargamasiva(id);
 alter table public.contacto add column interesado boolean default false;
+alter table public.contacto add column contesto_llamada boolean default false;
 alter table public.prospecto add column estado_interesado boolean default false;
 
 alter table public.cargamasiva add column usuario_asignado_id integer;

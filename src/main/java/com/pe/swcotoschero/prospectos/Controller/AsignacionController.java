@@ -1,4 +1,6 @@
 package com.pe.swcotoschero.prospectos.Controller;
+import com.pe.swcotoschero.prospectos.Entity.Usuario;
+import com.pe.swcotoschero.prospectos.Repository.UsuarioRepository;
 import com.pe.swcotoschero.prospectos.Service.AsignacionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +17,9 @@ public class AsignacionController {
     @Autowired
     private AsignacionService asignacionService;
 
+    @Autowired
+    private UsuarioRepository usuarioRepository;
+
     /**
      * Asignar todos los prospectos de una carga masiva a un usuario
      * @param cargaMasivaId ID de la carga masiva
@@ -29,9 +34,13 @@ public class AsignacionController {
         try {
             // Obtener el usuario autenticado desde el contexto de seguridad
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String usuarioAutenticado = authentication.getName();
-            
-            Map<String, Object> resultado = asignacionService.asignarCargaMasivaAUsuario(cargaMasivaId, usuarioId, usuarioAutenticado);
+            String username = authentication.getName();
+
+            // Buscar el usuario autenticado para obtener su ID
+            Usuario usuarioAutenticado = usuarioRepository.findByUsuarioAndEstado(username, true)
+                    .orElseThrow(() -> new IllegalArgumentException("Usuario autenticado no encontrado"));
+
+            Map<String, Object> resultado = asignacionService.asignarCargaMasivaAUsuario(cargaMasivaId, usuarioId, usuarioAutenticado.getId());
             return ResponseEntity.ok(resultado);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()

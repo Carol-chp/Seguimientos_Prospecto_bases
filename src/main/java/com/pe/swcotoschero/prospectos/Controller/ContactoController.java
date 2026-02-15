@@ -13,7 +13,7 @@ public class ContactoController {
 
     @Autowired
     private ContactoService contactoService;
-    
+
     @PostMapping
     public ResponseEntity<String> registrarContacto(@RequestBody ContactoRegistroDTO contactoDTO) {
         contactoService.registrarContacto(contactoDTO);

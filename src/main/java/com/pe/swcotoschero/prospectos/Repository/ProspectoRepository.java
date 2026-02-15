@@ -12,15 +12,15 @@ import java.util.List;
 public interface ProspectoRepository extends JpaRepository<Prospecto, Long> {
     List<Prospecto> findByCampaniaNombreAndDistrito(String campania, String distrito);
 
-    @Query("select p from Prospecto p where (p.campania.descripcion ilike %:campania%)" +
-            " and (p.nombre ilike %:filtro% or p.apellido ilike %:filtro% or p.celular ilike %:filtro% or p.documentoIdentidad ilike %:filtro%)")
+    @Query("select p from Prospecto p where (:campania = '' or p.campania.nombre ilike %:campania%)" +
+            " and (:filtro = '' or p.nombre ilike %:filtro% or p.apellido ilike %:filtro% or p.celular ilike %:filtro% or p.documentoIdentidad ilike %:filtro%)")
     Page<Prospecto> findProspectos(String campania, String filtro, Pageable pageable);
     
     @Query("select p from Prospecto p where p.estadoInteresado = true")
     Page<Prospecto> findProspectosInteresados(Pageable pageable);
     
-    @Query("select p from Prospecto p where p.estadoInteresado = true and (p.campania.descripcion ilike %:campania%)" +
-            " and (p.nombre ilike %:filtro% or p.apellido ilike %:filtro% or p.celular ilike %:filtro% or p.documentoIdentidad ilike %:filtro%)")
+    @Query("select p from Prospecto p where p.estadoInteresado = true and (:campania = '' or p.campania.nombre ilike %:campania%)" +
+            " and (:filtro = '' or p.nombre ilike %:filtro% or p.apellido ilike %:filtro% or p.celular ilike %:filtro% or p.documentoIdentidad ilike %:filtro%)")
     Page<Prospecto> findProspectosInteresados(String campania, String filtro, Pageable pageable);
     
     /**

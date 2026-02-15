@@ -15,7 +15,7 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**") // Aplica CORS a todas las rutas
-                        .allowedOrigins("http://localhost:4200") // Orígenes permitidos
+                        .allowedOriginPatterns("*") // Todos los orígenes permitidos
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") // Métodos HTTP permitidos
                         .allowedHeaders("*") // Headers permitidos
                         .allowCredentials(true); // Permitir cookies o credenciales

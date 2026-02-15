@@ -1,0 +1,167 @@
+### Variables
+@baseUrl = http://localhost:8081
+@token = your-jwt-token-here
+
+### ============================================
+### CRUD de Usuarios - Ejemplos de Uso
+### ============================================
+
+### 1. Obtener todos los usuarios activos
+GET {{baseUrl}}/api/usuarios/activos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### 2. Obtener usuario por ID
+GET {{baseUrl}}/api/usuarios/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### 3. Obtener todos los roles disponibles
+GET {{baseUrl}}/api/usuarios/roles
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### 4. Crear un nuevo usuario
+POST {{baseUrl}}/api/usuarios
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "María",
+  "apellidos": "López Fernández",
+  "usuario": "mlopez",
+  "email": "mlopez@example.com",
+  "password": "password123",
+  "rolId": 2
+}
+
+### 5. Actualizar usuario (sin cambiar password)
+PUT {{baseUrl}}/api/usuarios/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "María Actualizada",
+  "apellidos": "López García",
+  "email": "maria.lopez@example.com",
+  "password": null,
+  "rolId": 2,
+  "estado": true
+}
+
+### 6. Actualizar usuario (cambiando password)
+PUT {{baseUrl}}/api/usuarios/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "María Actualizada",
+  "apellidos": "López García",
+  "email": "maria.lopez@example.com",
+  "password": "newPassword456",
+  "rolId": 2,
+  "estado": true
+}
+
+### 7. Actualizar usuario (cambiar estado a inactivo)
+PUT {{baseUrl}}/api/usuarios/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "María",
+  "apellidos": "López",
+  "email": "maria.lopez@example.com",
+  "password": null,
+  "rolId": 2,
+  "estado": false
+}
+
+### 8. Desactivar usuario (soft delete)
+DELETE {{baseUrl}}/api/usuarios/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+### ============================================
+### Casos de Error - Para Pruebas
+### ============================================
+
+### Error: Usuario no encontrado (404)
+PUT {{baseUrl}}/api/usuarios/999
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "Test",
+  "apellidos": "Usuario",
+  "email": "test@example.com",
+  "password": null,
+  "rolId": 2,
+  "estado": true
+}
+
+###
+
+### Error: Rol no encontrado (400)
+PUT {{baseUrl}}/api/usuarios/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "Test",
+  "apellidos": "Usuario",
+  "email": "test@example.com",
+  "password": null,
+  "rolId": 999,
+  "estado": true
+}
+
+###
+
+### Error: Validación - Email inválido (400)
+PUT {{baseUrl}}/api/usuarios/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "Test",
+  "apellidos": "Usuario",
+  "email": "email-invalido",
+  "password": null,
+  "rolId": 2,
+  "estado": true
+}
+
+###
+
+### Error: Validación - Campos requeridos vacíos (400)
+PUT {{baseUrl}}/api/usuarios/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "",
+  "apellidos": "",
+  "email": "test@example.com",
+  "password": null,
+  "rolId": 2,
+  "estado": true
+}
+
+###
+
+### Error: Password muy corta (400)
+PUT {{baseUrl}}/api/usuarios/1
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "Test",
+  "apellidos": "Usuario",
+  "email": "test@example.com",
+  "password": "123",
+  "rolId": 2,
+  "estado": true
+}
+
+###

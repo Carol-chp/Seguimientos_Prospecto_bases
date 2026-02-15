@@ -22,6 +22,7 @@ import java.io.InputStream;
 
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/prospectos")
@@ -38,13 +39,19 @@ public class ProspectoController {
 
 
     @PostMapping("/importar")
-    public ResponseEntity<String> importarProspectosDesdeBase64(@RequestBody ArchivoBase64Request request) {
+    public ResponseEntity<Map<String, Object>> importarProspectosDesdeBase64(@RequestBody ArchivoBase64Request request) {
         try {
             prospectoService.importartDesdeExcel(request);
 
-            return ResponseEntity.ok("Archivo importado exitosamente");
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "mensaje", "Archivo importado exitosamente"
+            ));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body( e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(
+                "success", false,
+                "mensaje", e.getMessage()
+            ));
         }
     }
 

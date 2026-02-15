@@ -114,6 +114,7 @@ public class ProspectoService {
             if (campania == null) {
                 campania = new Campania();
                 campania.setNombre(campaniaNombre);
+                campania.setDescripcion(campaniaNombre);
                 campaniaRepository.save(campania);
             }
             campanias.put(campaniaNombre, campania);
