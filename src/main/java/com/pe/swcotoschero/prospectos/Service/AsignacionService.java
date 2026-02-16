@@ -52,16 +52,18 @@ public class AsignacionService {
     }
 
     /**
-     * Asigna todos los prospectos de una carga masiva a un usuario específico
-     * Optimizado para performance con operaciones en lote
-     * 
+     * Asigna prospectos de una carga masiva a un usuario específico.
+     * Solo asigna prospectos que aún no tienen asignación.
+     * Si se indica cantidad, solo asigna esa cantidad; si no, asigna todos los disponibles.
+     *
      * @param cargaMasivaId ID de la carga masiva
      * @param usuarioId ID del usuario al que se asignarán los prospectos
      * @param administradorId ID del administrador que realiza la asignación
+     * @param cantidad Cantidad de prospectos a asignar (null = todos los disponibles)
      * @return Map con el resultado de la operación
      */
     @Transactional
-    public Map<String, Object> asignarCargaMasivaAUsuario(Long cargaMasivaId, Long usuarioId, Long administradorId) {
+    public Map<String, Object> asignarCargaMasivaAUsuario(Long cargaMasivaId, Long usuarioId, Long administradorId, Integer cantidad) {
         // Validar que la carga masiva existe
         CargaMasiva cargaMasiva = cargaMasivaRepository.findById(cargaMasivaId)
                 .orElseThrow(() -> new IllegalArgumentException("Carga masiva no encontrada con ID: " + cargaMasivaId));
@@ -74,25 +76,30 @@ public class AsignacionService {
         Usuario administrador = usuarioRepository.findById(administradorId)
                 .orElseThrow(() -> new IllegalArgumentException("Administrador no encontrado con ID: " + administradorId));
 
-        // Obtener todos los prospectos de la carga masiva
-        List<Prospecto> prospectos = prospectoRepository.findByCargaMasiva(cargaMasiva);
-        
-        if (prospectos.isEmpty()) {
-            throw new IllegalArgumentException("No se encontraron prospectos en la carga masiva especificada");
+        // Obtener solo prospectos SIN asignación
+        List<Prospecto> prospectosSinAsignar = prospectoRepository.findUnassignedByCargaMasiva(cargaMasiva);
+
+        if (prospectosSinAsignar.isEmpty()) {
+            throw new IllegalArgumentException("No hay prospectos disponibles para asignar en esta carga masiva");
         }
 
-        // Verificar si ya existen asignaciones para estos prospectos
-        List<Asignacion> asignacionesExistentes = asignacionRepository.findByProspectoIn(prospectos);
-        int asignacionesExistentesCount = asignacionesExistentes.size();
+        // Validar cantidad si se especificó
+        if (cantidad != null) {
+            if (cantidad <= 0) {
+                throw new IllegalArgumentException("La cantidad debe ser mayor a 0");
+            }
+            if (cantidad > prospectosSinAsignar.size()) {
+                throw new IllegalArgumentException("La cantidad solicitada (" + cantidad + ") excede los prospectos disponibles (" + prospectosSinAsignar.size() + ")");
+            }
+        }
 
-        // Crear nuevas asignaciones para prospectos que no tienen asignación
-        List<Prospecto> prospectosSinAsignar = prospectos.stream()
-                .filter(prospecto -> asignacionesExistentes.stream()
-                        .noneMatch(asignacion -> asignacion.getProspecto().getProspectoID().equals(prospecto.getProspectoID())))
-                .toList();
+        // Determinar los prospectos a asignar
+        List<Prospecto> prospectosAAsignar = cantidad != null
+                ? prospectosSinAsignar.stream().limit(cantidad).toList()
+                : prospectosSinAsignar;
 
-        // Crear asignaciones en lote para mejor performance
-        List<Asignacion> nuevasAsignaciones = prospectosSinAsignar.stream()
+        // Crear asignaciones en lote
+        List<Asignacion> nuevasAsignaciones = prospectosAAsignar.stream()
                 .map(prospecto -> {
                     Asignacion asignacion = new Asignacion();
                     asignacion.setProspecto(prospecto);
@@ -104,24 +111,16 @@ public class AsignacionService {
                 })
                 .toList();
 
-        // Guardar todas las asignaciones en una sola operación
+        // Guardar todas las asignaciones
         if (!nuevasAsignaciones.isEmpty()) {
             asignacionRepository.saveAll(nuevasAsignaciones);
         }
 
-        // Reasignar los prospectos que ya tenían asignación anterior
-        if (!asignacionesExistentes.isEmpty()) {
-            asignacionesExistentes.forEach(asignacion -> {
-                asignacion.setUsuario(usuario);
-                asignacion.setAdministrador(administrador);
-                asignacion.setFechaAsignacion(LocalDateTime.now());
-                asignacion.setEstado("Reasignado");
-            });
-            asignacionRepository.saveAll(asignacionesExistentes);
-        }
+        // Actualizar estado de asignación de la carga masiva
+        cargaMasivaService.actualizarEstadoAsignacion(cargaMasivaId);
 
-        // Actualizar información de asignación en la carga masiva
-        cargaMasivaService.actualizarAsignacion(cargaMasivaId, usuario);
+        // Calcular prospectos restantes sin asignar
+        int restantes = prospectosSinAsignar.size() - prospectosAAsignar.size();
 
         // Preparar respuesta con estadísticas
         Map<String, Object> resultado = new HashMap<>();
@@ -131,9 +130,9 @@ public class AsignacionService {
         resultado.put("cargaMasivaNombre", cargaMasiva.getNombrearchivo());
         resultado.put("usuarioId", usuarioId);
         resultado.put("usuarioNombre", usuario.getNombre() + " " + usuario.getApellidos());
-        resultado.put("totalProspectos", prospectos.size());
+        resultado.put("totalProspectos", prospectosSinAsignar.size());
         resultado.put("nuevasAsignaciones", nuevasAsignaciones.size());
-        resultado.put("reasignaciones", asignacionesExistentesCount);
+        resultado.put("prospectosSinAsignar", restantes);
         resultado.put("fechaAsignacion", LocalDateTime.now());
 
         return resultado;

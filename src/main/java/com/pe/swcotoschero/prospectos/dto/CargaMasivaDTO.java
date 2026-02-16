@@ -1,6 +1,7 @@
 package com.pe.swcotoschero.prospectos.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class CargaMasivaDTO {
     private Long id;
@@ -10,6 +11,11 @@ public class CargaMasivaDTO {
     private String estadoAsignacion;
     private LocalDateTime fechaAsignacion;
     
+    // Información de asignación parcial
+    private int prospectosAsignados;
+    private int prospectosSinAsignar;
+    private List<AsignacionResumenDTO> resumenAsignaciones;
+
     // Información del usuario asignado
     private Long usuarioAsignadoId;
     private String usuarioAsignadoNombre;
@@ -127,5 +133,29 @@ public class CargaMasivaDTO {
         if (usuarioAsignadoNombre != null && usuarioAsignadoApellidos != null) {
             this.usuarioAsignadoCompleto = usuarioAsignadoNombre + " " + usuarioAsignadoApellidos;
         }
+    }
+
+    public int getProspectosAsignados() {
+        return prospectosAsignados;
+    }
+
+    public void setProspectosAsignados(int prospectosAsignados) {
+        this.prospectosAsignados = prospectosAsignados;
+    }
+
+    public int getProspectosSinAsignar() {
+        return prospectosSinAsignar;
+    }
+
+    public void setProspectosSinAsignar(int prospectosSinAsignar) {
+        this.prospectosSinAsignar = prospectosSinAsignar;
+    }
+
+    public List<AsignacionResumenDTO> getResumenAsignaciones() {
+        return resumenAsignaciones;
+    }
+
+    public void setResumenAsignaciones(List<AsignacionResumenDTO> resumenAsignaciones) {
+        this.resumenAsignaciones = resumenAsignaciones;
     }
 }

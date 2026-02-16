@@ -32,5 +32,17 @@ public interface ProspectoRepository extends JpaRepository<Prospecto, Long> {
      * Cuenta los prospectos de una carga masiva específica
      */
     Long countByCargaMasiva(CargaMasiva cargaMasiva);
+
+    /**
+     * Encuentra prospectos de una carga masiva que NO tienen asignación
+     */
+    @Query("SELECT p FROM Prospecto p WHERE p.cargaMasiva = :cargaMasiva AND NOT EXISTS (SELECT a FROM Asignacion a WHERE a.prospecto = p)")
+    List<Prospecto> findUnassignedByCargaMasiva(CargaMasiva cargaMasiva);
+
+    /**
+     * Cuenta prospectos de una carga masiva que NO tienen asignación
+     */
+    @Query("SELECT COUNT(p) FROM Prospecto p WHERE p.cargaMasiva = :cargaMasiva AND NOT EXISTS (SELECT a FROM Asignacion a WHERE a.prospecto = p)")
+    Long countUnassignedByCargaMasiva(CargaMasiva cargaMasiva);
 }
 

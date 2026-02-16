@@ -28,9 +28,10 @@ public class AsignacionController {
      */
     @PostMapping("/asignar-carga-masiva")
     public ResponseEntity<?> asignarCargaMasivaAUsuario(
-            @RequestParam Long cargaMasivaId, 
-            @RequestParam Long usuarioId) {
-        
+            @RequestParam Long cargaMasivaId,
+            @RequestParam Long usuarioId,
+            @RequestParam(required = false) Integer cantidad) {
+
         try {
             // Obtener el usuario autenticado desde el contexto de seguridad
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -40,7 +41,7 @@ public class AsignacionController {
             Usuario usuarioAutenticado = usuarioRepository.findByUsuarioAndEstado(username, true)
                     .orElseThrow(() -> new IllegalArgumentException("Usuario autenticado no encontrado"));
 
-            Map<String, Object> resultado = asignacionService.asignarCargaMasivaAUsuario(cargaMasivaId, usuarioId, usuarioAutenticado.getId());
+            Map<String, Object> resultado = asignacionService.asignarCargaMasivaAUsuario(cargaMasivaId, usuarioId, usuarioAutenticado.getId(), cantidad);
             return ResponseEntity.ok(resultado);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
