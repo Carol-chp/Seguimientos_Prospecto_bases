@@ -40,11 +40,13 @@ public class AuthController {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         String jwt = jwtService.generateToken(userDetails);
 
-        String rol = usuarioRepository.findByUsuarioAndEstado(userDetails.getUsername(), true)
-                .map(u -> u.getRol().getNombre())
-                .orElse("");
+        Usuario usuario = usuarioRepository.findByUsuarioAndEstado(userDetails.getUsername(), true)
+                .orElse(null);
 
-        return ResponseEntity.ok(LoginResponseDTO.builder().token(jwt).rol(rol).build());
+        String rol = usuario != null ? usuario.getRol().getNombre() : "";
+        String nombre = usuario != null ? usuario.getNombre() + " " + usuario.getApellidos() : "";
+
+        return ResponseEntity.ok(LoginResponseDTO.builder().token(jwt).rol(rol).nombre(nombre).build());
     }
 
     @PostMapping("/register")
