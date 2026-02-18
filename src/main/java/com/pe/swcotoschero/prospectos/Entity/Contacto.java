@@ -39,4 +39,7 @@ public class Contacto {
     @Column(name = "interesado")
     private Boolean interesado;
 
+    @Column(name = "estado_resultado")
+    private String estadoResultado;
+
 }

@@ -10,4 +10,6 @@ public class ContactoRegistroDTO {
     private String comentario;
     private Boolean contestoLlamada;
     private Boolean interesado;
+    private String estadoResultado;
+    private String fechaAgenda; // ISO format string, parsed in service
 }

@@ -38,12 +38,16 @@ public class Asignacion {
     @Column(nullable = false)
     private String estado;
 
-    //private String estado = "Pendiente";
+    @Column(name = "estado_resultado")
+    private String estadoResultado;
+
+    @Column(name = "fecha_agenda")
+    private LocalDateTime fechaAgenda;
 
     // Constructor por defecto
     public Asignacion() {
-        this.fechaAsignacion = LocalDateTime.now(); // Fecha predeterminada al momento de creación
-        this.estado = "Pendiente"; // Estado inicial
+        this.fechaAsignacion = LocalDateTime.now();
+        this.estado = "SIN_GESTIONAR";
     }
 
     // Getters y Setters
@@ -96,4 +100,19 @@ public class Asignacion {
         this.administrador = administrador;
     }
 
+    public String getEstadoResultado() {
+        return estadoResultado;
+    }
+
+    public void setEstadoResultado(String estadoResultado) {
+        this.estadoResultado = estadoResultado;
+    }
+
+    public LocalDateTime getFechaAgenda() {
+        return fechaAgenda;
+    }
+
+    public void setFechaAgenda(LocalDateTime fechaAgenda) {
+        this.fechaAgenda = fechaAgenda;
+    }
 }

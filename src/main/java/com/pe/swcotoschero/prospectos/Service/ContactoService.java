@@ -14,17 +14,20 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class ContactoService {
     @Autowired
     private ContactoRepository contactoRepository;
-    
+
     @Autowired
     private AsignacionRepository asignacionRepository;
-    
+
     @Autowired
     private ProspectoRepository prospectoRepository;
+
+    private static final Set<String> ESTADOS_FINALES = Set.of("CONCRETO_PRESTAMO", "NO_VOLVER_LLAMAR");
 
     public List<Contacto> listarTodos() {
         return contactoRepository.findAll();
@@ -48,20 +51,51 @@ public class ContactoService {
         Asignacion asignacion = asignacionRepository.findByProspecto_ProspectoID(contactoDTO.getProspectoId())
                 .orElseThrow(() -> new IllegalArgumentException("No se encontró asignación para el prospecto con ID " + contactoDTO.getProspectoId()));
 
+        String estadoResultado = contactoDTO.getEstadoResultado();
+
         // Crear nuevo registro de contacto (histórico)
         Contacto contacto = new Contacto();
         contacto.setAsignacion(asignacion);
         contacto.setComentario(contactoDTO.getComentario());
-        contacto.setContestoLlamada(contactoDTO.getContestoLlamada());
-        contacto.setInteresado(contactoDTO.getInteresado());
         contacto.setFechaContacto(LocalDateTime.now());
+        contacto.setEstadoResultado(estadoResultado);
 
-        // Guardar el registro histórico
+        // Retrocompatibilidad con campos booleanos
+        if (estadoResultado != null) {
+            contacto.setContestoLlamada(!"NO_CONTESTO".equals(estadoResultado));
+            contacto.setInteresado("PROSPECTO".equals(estadoResultado) || "CONCRETO_PRESTAMO".equals(estadoResultado));
+        } else {
+            contacto.setContestoLlamada(contactoDTO.getContestoLlamada());
+            contacto.setInteresado(contactoDTO.getInteresado());
+        }
+
         contactoRepository.save(contacto);
 
-        // Actualizar el estado del prospecto con el último valor de interesado
+        // Actualizar estado de la asignacion
+        if (estadoResultado != null) {
+            asignacion.setEstadoResultado(estadoResultado);
+
+            // Actualizar estado de gestion
+            if (ESTADOS_FINALES.contains(estadoResultado)) {
+                asignacion.setEstado("FINALIZADO");
+            } else {
+                asignacion.setEstado("EN_GESTION");
+            }
+
+            // Manejar fecha de agenda
+            if ("AGENDADO".equals(estadoResultado) && contactoDTO.getFechaAgenda() != null) {
+                asignacion.setFechaAgenda(LocalDateTime.parse(contactoDTO.getFechaAgenda()));
+            } else {
+                asignacion.setFechaAgenda(null);
+            }
+
+            asignacionRepository.save(asignacion);
+        }
+
+        // Actualizar estado interesado del prospecto
         Prospecto prospecto = asignacion.getProspecto();
-        prospecto.setEstadoInteresado(contactoDTO.getInteresado());
+        boolean interesado = "PROSPECTO".equals(estadoResultado) || "CONCRETO_PRESTAMO".equals(estadoResultado);
+        prospecto.setEstadoInteresado(interesado);
         prospectoRepository.save(prospecto);
     }
 }

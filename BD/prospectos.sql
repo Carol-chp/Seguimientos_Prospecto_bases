@@ -114,3 +114,10 @@ alter table public.cargamasiva add column usuario_asignado_id integer;
 alter table public.cargamasiva add column cantidad_prospectos integer;
 alter table public.cargamasiva add column estado_asignacion character varying(100);
 alter table public.cargamasiva add column fecha_asignacion timestamp without time zone;
+
+-- Estados de gestion y resultado para asignaciones
+alter table public.asignacion add column estado_resultado character varying(50);
+alter table public.asignacion add column fecha_agenda timestamp without time zone;
+
+-- Estado resultado en contacto (historial)
+alter table public.contacto add column estado_resultado character varying(50);
