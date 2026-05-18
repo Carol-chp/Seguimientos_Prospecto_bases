@@ -118,11 +118,11 @@ spec:
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
-            runAsUser: 1000
+            runAsUser: 10001
             capabilities:
               drop:
                 - ALL
       restartPolicy: Always
       securityContext:
-        fsGroup: 1000
+        fsGroup: 10001
       terminationGracePeriodSeconds: 30

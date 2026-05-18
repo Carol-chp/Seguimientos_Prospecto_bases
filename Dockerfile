@@ -16,10 +16,11 @@ RUN ./mvnw -B -q -DskipTests clean package \
 FROM eclipse-temurin:21-jre AS runtime
 WORKDIR /app
 
-# Usuario no-root
-RUN groupadd -g 1000 spring && useradd -u 1000 -g spring -s /usr/sbin/nologin spring
+# Usuario no-root (UID/GID 10001 para no chocar con grupos existentes de la base)
+RUN groupadd -g 10001 spring \
+ && useradd -u 10001 -g spring -s /usr/sbin/nologin -M spring
 COPY --from=build /workspace/app.jar /app/app.jar
-USER 1000:1000
+USER 10001:10001
 
 EXPOSE 8081
 ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0"

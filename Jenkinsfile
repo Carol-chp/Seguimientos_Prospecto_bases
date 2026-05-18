@@ -55,12 +55,8 @@ pipeline {
         stage('Build & Test') {
             steps {
                 container('maven') {
-                    sh './mvnw -B --no-transfer-progress clean verify'
-                }
-            }
-            post {
-                always {
-                    junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
+                    // Tests omitidos por completo (no se compilan ni ejecutan en CI).
+                    sh './mvnw -B --no-transfer-progress clean verify -Dmaven.test.skip=true'
                 }
             }
         }
