@@ -34,8 +34,8 @@ public class ProspectoBusquedaService {
                         .id(entity.getProspectoID())
                         .nombre(entity.getNombre())
                         .apellido(entity.getApellido())
-                        .celular(entity.getCelular())
-                        .documentoIdentidad(entity.getDocumentoIdentidad())
+                        .celular(mask(entity.getCelular()))
+                        .documentoIdentidad(mask(entity.getDocumentoIdentidad()))
                         .sexo(entity.getSexo())
                         .cargo(entity.getCargo())
                         .distrito(entity.getDistrito())
@@ -44,20 +44,20 @@ public class ProspectoBusquedaService {
                         .build()).collect(java.util.stream.Collectors.toList()))
                 .build();
     }
-    
+
     public ProspectoBusquedaResponseDTO buscarProspectosInteresados(ProspectoBusquedaRequestDTO request) {
         Pageable pageable = PageRequest.of(request.getPagina(), request.getTamanioPagina());
         Page<Prospecto> page;
-        
+
         // Si hay filtros de búsqueda, usar la consulta con filtros
-        if ((request.getCampania() != null && !request.getCampania().isEmpty()) || 
+        if ((request.getCampania() != null && !request.getCampania().isEmpty()) ||
             (request.getTextoBusqueda() != null && !request.getTextoBusqueda().isEmpty())) {
             page = prospectoRepository.findProspectosInteresados(request.getCampania(), request.getTextoBusqueda(), pageable);
         } else {
             // Si no hay filtros, obtener todos los interesados
             page = prospectoRepository.findProspectosInteresados(pageable);
         }
-        
+
         log.info("Prospectos interesados encontrados: " + page.getContent().size());
         return ProspectoBusquedaResponseDTO.builder()
                 .pagina(page.getNumber() + 1)
@@ -67,8 +67,8 @@ public class ProspectoBusquedaService {
                         .id(entity.getProspectoID())
                         .nombre(entity.getNombre())
                         .apellido(entity.getApellido())
-                        .celular(entity.getCelular())
-                        .documentoIdentidad(entity.getDocumentoIdentidad())
+                        .celular(mask(entity.getCelular()))
+                        .documentoIdentidad(mask(entity.getDocumentoIdentidad()))
                         .sexo(entity.getSexo())
                         .cargo(entity.getCargo())
                         .distrito(entity.getDistrito())
@@ -76,5 +76,20 @@ public class ProspectoBusquedaService {
                         .subcampania(entity.getSubcampania())
                         .build()).collect(java.util.stream.Collectors.toList()))
                 .build();
+    }
+
+    /**
+     * Enmascara un valor sensible dejando visibles solo los ultimos 3 caracteres.
+     * Mismo criterio que ColaboradorColaService.enmascararSensible y BitacoraService.mask.
+     */
+    private static String mask(String valor) {
+        if (valor == null || valor.isBlank()) {
+            return "***";
+        }
+        String t = valor.trim();
+        if (t.length() <= 3) {
+            return "***";
+        }
+        return "*".repeat(t.length() - 3) + t.substring(t.length() - 3);
     }
 }

@@ -545,6 +545,32 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Long> {
             @Param("estadoResultado") ResultadoAtencion estadoResultado);
 
     /**
+     * Paged variant of findParaExportacion — used by the export service to enforce
+     * a hard row cap (EXPORT_CAP = 10_000) so unbounded exports cannot exhaust memory.
+     *
+     * Note: Spring Data JPA does not allow JOIN FETCH together with a Pageable count
+     * query on the same JPQL, so we use a separate countQuery.
+     */
+    @Query(value = "SELECT a FROM Asignacion a " +
+           "JOIN FETCH a.prospecto p " +
+           "LEFT JOIN FETCH p.campania " +
+           "LEFT JOIN FETCH a.usuario u " +
+           "WHERE (:campaniaNombre IS NULL OR p.campania.nombre = :campaniaNombre) " +
+           "AND (:estado IS NULL OR a.estado = :estado) " +
+           "AND (:estadoResultado IS NULL OR a.estadoResultado = :estadoResultado) " +
+           "ORDER BY a.fechaAsignacion DESC",
+           countQuery = "SELECT COUNT(a) FROM Asignacion a " +
+           "JOIN a.prospecto p " +
+           "WHERE (:campaniaNombre IS NULL OR p.campania.nombre = :campaniaNombre) " +
+           "AND (:estado IS NULL OR a.estado = :estado) " +
+           "AND (:estadoResultado IS NULL OR a.estadoResultado = :estadoResultado)")
+    Page<Asignacion> findParaExportacionPaged(
+            @Param("campaniaNombre") String campaniaNombre,
+            @Param("estado") EstadoGestion estado,
+            @Param("estadoResultado") ResultadoAtencion estadoResultado,
+            Pageable pageable);
+
+    /**
      * Prospectos de una carga masiva que tienen al menos una asignacion.
      * Para calcular asignados/sinAsignar por base.
      */

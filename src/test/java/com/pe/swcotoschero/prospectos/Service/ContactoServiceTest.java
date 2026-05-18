@@ -388,7 +388,8 @@ class ContactoServiceTest {
         reqDto.setProspectoId(1L);
         reqDto.setResultado("APTO");
 
-        Map<String, Object> result = contactoService.verificarSbs(reqDto);
+        // Pass usuario.getId() (1L) — matches asignacionActiva.getUsuario().getId()
+        Map<String, Object> result = contactoService.verificarSbs(reqDto, usuario.getId());
 
         assertTrue((Boolean) result.get("continuar"));
         assertFalse(result.containsKey("fechaReevaluacionSbs"));
@@ -411,7 +412,7 @@ class ContactoServiceTest {
         reqDto.setResultado("OBSERVADO");
         reqDto.setComentario("Tiene deuda");
 
-        Map<String, Object> result = contactoService.verificarSbs(reqDto);
+        Map<String, Object> result = contactoService.verificarSbs(reqDto, usuario.getId());
 
         assertFalse((Boolean) result.get("continuar"));
         assertEquals("EN_SEGUIMIENTO", result.get("estado"));
@@ -444,7 +445,7 @@ class ContactoServiceTest {
         reqDto.setResultado("OBSERVADO");
         reqDto.setFechaReevaluacion("2030-01-15");
 
-        Map<String, Object> result = contactoService.verificarSbs(reqDto);
+        Map<String, Object> result = contactoService.verificarSbs(reqDto, usuario.getId());
 
         assertEquals("2030-01-15", result.get("fechaReevaluacionSbs"));
     }

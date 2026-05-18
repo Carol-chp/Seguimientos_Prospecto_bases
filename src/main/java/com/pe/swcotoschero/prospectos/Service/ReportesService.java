@@ -60,6 +60,9 @@ public class ReportesService {
     private static final ZoneId ZONA_LIMA = ZoneId.of("America/Lima");
     private static final long ADMIN_ROL_ID = 1L;
 
+    /** Hard cap consistent with BitacoraService.EXPORT_CAP. */
+    private static final int EXPORT_CAP = 10_000;
+
     private final AsignacionRepository asignacionRepository;
     private final ContactoRepository contactoRepository;
     private final CargaMasivaRepository cargaMasivaRepository;
@@ -344,7 +347,16 @@ public class ReportesService {
         ResultadoAtencion estadoRes = parseEnum(ResultadoAtencion.class, estadoResStr);
         String campania = (campaniaNombre == null || campaniaNombre.isBlank()) ? null : campaniaNombre;
 
-        List<Asignacion> asignaciones = asignacionRepository.findParaExportacion(campania, estado, estadoRes);
+        org.springframework.data.domain.Page<Asignacion> page =
+                asignacionRepository.findParaExportacionPaged(
+                        campania, estado, estadoRes,
+                        PageRequest.of(0, EXPORT_CAP));
+        if (page.getTotalElements() > EXPORT_CAP) {
+            log.warn("exportarProspectos: resultado truncado a {} filas (total real: {}). "
+                    + "Aplique filtros adicionales para obtener el conjunto completo.",
+                    EXPORT_CAP, page.getTotalElements());
+        }
+        List<Asignacion> asignaciones = page.getContent();
 
         try (XSSFWorkbook wb = new XSSFWorkbook()) {
             Sheet sheet = wb.createSheet("Prospectos");

@@ -8,6 +8,8 @@ import com.pe.swcotoschero.prospectos.dto.ContactoRegistroDTO;
 import com.pe.swcotoschero.prospectos.dto.HistorialContactoDTO;
 import com.pe.swcotoschero.prospectos.dto.VerificacionSbsRequestDTO;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -68,13 +70,15 @@ public class ContactoController {
         if (prospectoId == null) {
             throw new IllegalArgumentException("prospectoId es obligatorio.");
         }
-        AperturaResponseDTO respuesta = contactoService.abrirModal(prospectoId);
+        Usuario caller = obtenerUsuarioAutenticado();
+        AperturaResponseDTO respuesta = contactoService.abrirModal(prospectoId, caller.getId());
         return ResponseEntity.ok(respuesta);
     }
 
     @PostMapping("/apertura/{id}/cerrar")
     public ResponseEntity<Map<String, Object>> cerrarModal(@PathVariable Long id) {
-        contactoService.cerrarModalSinRegistro(id);
+        Usuario caller = obtenerUsuarioAutenticado();
+        contactoService.cerrarModalSinRegistro(id, caller.getId());
         return ResponseEntity.ok(Map.of("ok", true));
     }
 
@@ -85,7 +89,8 @@ public class ContactoController {
     @PostMapping("/verificacion-sbs")
     public ResponseEntity<Map<String, Object>> verificarSbs(
             @RequestBody VerificacionSbsRequestDTO dto) {
-        Map<String, Object> resultado = contactoService.verificarSbs(dto);
+        Usuario caller = obtenerUsuarioAutenticado();
+        Map<String, Object> resultado = contactoService.verificarSbs(dto, caller.getId());
         return ResponseEntity.ok(resultado);
     }
 
@@ -108,7 +113,12 @@ public class ContactoController {
     @GetMapping("/historial/{prospectoId}")
     public ResponseEntity<List<HistorialContactoDTO>> historial(
             @PathVariable Long prospectoId) {
-        List<HistorialContactoDTO> historial = contactoService.obtenerHistorial(prospectoId);
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Usuario caller = obtenerUsuarioAutenticado();
+        boolean esAdmin = auth.getAuthorities()
+                .contains(new SimpleGrantedAuthority("ROLE_ADMINISTRADOR"));
+        List<HistorialContactoDTO> historial =
+                contactoService.obtenerHistorial(prospectoId, caller.getId(), esAdmin);
         return ResponseEntity.ok(historial);
     }
 

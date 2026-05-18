@@ -4,6 +4,7 @@ import com.pe.swcotoschero.prospectos.Service.CampaniaService;
 import com.pe.swcotoschero.prospectos.Entity.Campania;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,6 +21,7 @@ public class CampaniaController {
         return ResponseEntity.ok(campaniaService.listarTodos());
     }
 
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     @PostMapping
     public ResponseEntity<Campania> crearCampania(@RequestBody Campania campaña) {
         return ResponseEntity.ok(campaniaService.crearCampania(campaña));

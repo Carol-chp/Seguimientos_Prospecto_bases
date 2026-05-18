@@ -44,6 +44,7 @@ public class AsignacionController {
     /**
      * Asignar prospectos de una carga masiva a un usuario.
      */
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     @PostMapping("/asignar-carga-masiva")
     public ResponseEntity<?> asignarCargaMasivaAUsuario(
             @RequestParam Long cargaMasivaId,
@@ -191,6 +192,7 @@ public class AsignacionController {
     /**
      * Estadisticas generales de asignaciones.
      */
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     @GetMapping("/estadisticas")
     public ResponseEntity<Map<String, Object>> obtenerEstadisticas() {
         try {

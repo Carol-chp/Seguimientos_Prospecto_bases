@@ -20,8 +20,11 @@ import com.pe.swcotoschero.prospectos.dto.AperturaResponseDTO;
 import com.pe.swcotoschero.prospectos.dto.ContactoRegistroDTO;
 import com.pe.swcotoschero.prospectos.dto.HistorialContactoDTO;
 import com.pe.swcotoschero.prospectos.dto.VerificacionSbsRequestDTO;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -91,10 +94,13 @@ public class ContactoService {
     /**
      * Crea un AperturaEvento para el ciclo activo del prospecto.
      * inicio = now; huboRegistro = false (se corrige al guardar la atencion).
+     *
+     * @param callerUsuarioId ID del usuario autenticado (para verificar ownership).
      */
     @Transactional
-    public AperturaResponseDTO abrirModal(Long prospectoId) {
+    public AperturaResponseDTO abrirModal(Long prospectoId, Long callerUsuarioId) {
         Asignacion asignacion = resolverCicloActivo(prospectoId);
+        verificarOwnership(asignacion, callerUsuarioId);
 
         AperturaEvento apertura = new AperturaEvento();
         apertura.setAsignacion(asignacion);
@@ -108,12 +114,16 @@ public class ContactoService {
     /**
      * Cierra el modal sin guardar resultado (cancelacion por el usuario).
      * Idempotente: si ya tiene fin, no modifica nada.
+     *
+     * @param callerUsuarioId ID del usuario autenticado (para verificar ownership).
      */
     @Transactional
-    public void cerrarModalSinRegistro(Long aperturaId) {
+    public void cerrarModalSinRegistro(Long aperturaId, Long callerUsuarioId) {
         AperturaEvento apertura = aperturaEventoRepository.findById(aperturaId)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "AperturaEvento no encontrado: " + aperturaId));
+
+        verificarOwnership(apertura.getAsignacion(), callerUsuarioId);
 
         if (apertura.getFin() != null) {
             return; // idempotente
@@ -133,12 +143,15 @@ public class ContactoService {
      *
      * APTO     → { continuar: true }
      * OBSERVADO → { continuar: false, estado: "EN_SEGUIMIENTO", fechaReevaluacionSbs: "YYYY-MM-DD" }
+     *
+     * @param callerUsuarioId ID del usuario autenticado (para verificar ownership).
      */
     @Transactional
-    public Map<String, Object> verificarSbs(VerificacionSbsRequestDTO dto) {
+    public Map<String, Object> verificarSbs(VerificacionSbsRequestDTO dto, Long callerUsuarioId) {
         VerificacionSbs resultado = parsearVerificacionSbs(dto.getResultado());
 
         Asignacion asignacion = resolverCicloActivo(dto.getProspectoId());
+        verificarOwnership(asignacion, callerUsuarioId);
         LocalDateTime ahora = LocalDateTime.now();
 
         asignacion.setVerificacionSbs(resultado);
@@ -193,6 +206,7 @@ public class ContactoService {
     public Map<String, Object> registrarContacto(ContactoRegistroDTO dto,
                                                   Usuario usuarioAutenticado) {
         Asignacion asignacion = resolverCicloActivo(dto.getProspectoId());
+        verificarOwnership(asignacion, usuarioAutenticado.getId());
 
         // Bloqueo SBS
         if (asignacion.getVerificacionSbs() != VerificacionSbs.APTO) {
@@ -263,7 +277,21 @@ public class ContactoService {
 
         // RF-06a/06b: notificación al dueño (async, best-effort, no bloquea
         // el registro; respeta toggles y app.mail.enabled internamente).
-        emailService.notificarAtencionAsync(contacto.getContactoID());
+        // Fire AFTER commit so the async thread always reads committed data.
+        final Long contactoId = contacto.getContactoID();
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(
+                    new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            emailService.notificarAtencionAsync(contactoId);
+                        }
+                    });
+        } else {
+            // No active transaction (e.g. called from a test without @Transactional) —
+            // fall back to direct call so behaviour is preserved.
+            emailService.notificarAtencionAsync(contactoId);
+        }
 
         Map<String, Object> respuesta = new LinkedHashMap<>();
         respuesta.put("ok", true);
@@ -277,8 +305,30 @@ public class ContactoService {
     // Historial
     // =========================================================================
 
+    /**
+     * Devuelve el historial de contactos del prospecto.
+     *
+     * @param callerUsuarioId ID del usuario autenticado.
+     * @param callerIsAdmin   true si el caller tiene rol ADMINISTRADOR.
+     */
     @Transactional(readOnly = true)
-    public List<HistorialContactoDTO> obtenerHistorial(Long prospectoId) {
+    public List<HistorialContactoDTO> obtenerHistorial(Long prospectoId,
+                                                        Long callerUsuarioId,
+                                                        boolean callerIsAdmin) {
+        if (!callerIsAdmin) {
+            // Verify that the prospecto has an active cycle owned by the caller.
+            // We use the same cycle-resolution logic (finds non-terminal cycle); if the
+            // prospecto has no active cycle at all, the caller has no business viewing
+            // its historial either.
+            Asignacion asignacion = asignacionRepository
+                    .findFirstByProspecto_ProspectoIDAndEstadoNotInOrderByFechaAsignacionDesc(
+                            prospectoId,
+                            List.of(com.pe.swcotoschero.prospectos.Entity.enums.EstadoGestion.GANADO,
+                                    DESCARTADO))
+                    .orElseThrow(() -> new AccessDeniedException(
+                            "No tiene acceso al historial de este prospecto."));
+            verificarOwnership(asignacion, callerUsuarioId);
+        }
         return contactoRepository.findHistorialByProspectoId(prospectoId)
                 .stream()
                 .map(c -> new HistorialContactoDTO(
@@ -303,6 +353,18 @@ public class ContactoService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "El prospecto con ID " + prospectoId
                         + " no tiene un ciclo activo."));
+    }
+
+    /**
+     * Verifica que el ciclo activo pertenece al usuario autenticado.
+     * Lanza AccessDeniedException si no coincide (GlobalExceptionHandler → 403).
+     */
+    private void verificarOwnership(Asignacion asignacion, Long callerUsuarioId) {
+        if (asignacion.getUsuario() == null
+                || !asignacion.getUsuario().getId().equals(callerUsuarioId)) {
+            throw new AccessDeniedException(
+                    "No tiene permisos para operar sobre este prospecto.");
+        }
     }
 
     private ConfiguracionDueno obtenerConfiguracion() {

@@ -1,17 +1,18 @@
 package com.pe.swcotoschero.prospectos.Config;
 
+import jakarta.persistence.OptimisticLockException;
+import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-
-import jakarta.validation.ConstraintViolationException;
 
 import java.time.OffsetDateTime;
 import java.util.LinkedHashMap;
@@ -83,6 +84,19 @@ public class GlobalExceptionHandler {
         Map<String, Object> r = new LinkedHashMap<>(b);
         r.put("errores", errores);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(r);
+    }
+
+    /**
+     * Conflicto de concurrencia optimista (dos hilos modificaron la misma version
+     * de Asignacion simultaneamente) → 409 Conflict con mensaje claro para el frontend.
+     */
+    @ExceptionHandler({ObjectOptimisticLockingFailureException.class,
+                       OptimisticLockException.class})
+    public ResponseEntity<Map<String, Object>> handleOptimisticLock(Exception ex) {
+        log.warn("Conflicto de concurrencia optimista: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(body(HttpStatus.CONFLICT,
+                        "El caso fue modificado por otra operación; reintente."));
     }
 
     /**

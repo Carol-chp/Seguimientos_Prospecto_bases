@@ -28,6 +28,15 @@ public class Asignacion {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long asignacionID;
 
+    /**
+     * Control de concurrencia optimista (RF seguridad).
+     * Cada UPDATE incrementa este campo; si dos hilos intentan modificar
+     * la misma version simultaneamente, el segundo recibe 409 Conflict.
+     */
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     // -------------------------------------------------------------------------
     // Relaciones principales
     // -------------------------------------------------------------------------
