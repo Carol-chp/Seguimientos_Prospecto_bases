@@ -236,9 +236,13 @@ public class ColaboradorColaService {
                 .prospectoId(p.getProspectoID())
                 .nombre(p.getNombre())
                 .apellido(p.getApellido())
-                .celular(enmascararSensible(p.getCelular()))
-                .celularMasked(true)
-                .documentoIdentidad(enmascararSensible(p.getDocumentoIdentidad()))
+                // El colaborador autenticado es dueño de su propio ciclo (endpoint
+                // scopeado por usuarioId + IDOR cerrado): necesita el dato REAL
+                // para verificar SBS (Paso 0) y para llamar. El enmascarado se
+                // mantiene en búsqueda global, export/reportes, bitácora y emails.
+                .celular(p.getCelular())
+                .celularMasked(false)
+                .documentoIdentidad(p.getDocumentoIdentidad())
                 .campania(p.getCampania() != null ? p.getCampania().getNombre() : null)
                 .estado(a.getEstado() != null ? a.getEstado().name() : null)
                 .estadoResultado(a.getEstadoResultado() != null ? a.getEstadoResultado().name() : null)

@@ -446,8 +446,12 @@ public class ReportesService {
                 if (item instanceof com.pe.swcotoschero.prospectos.dto.MiProspectoDTO dto) {
                     Row row = sheet.createRow(rowIdx++);
                     row.createCell(0).setCellValue(nombreCompleto(dto.getNombre(), dto.getApellido()));
-                    row.createCell(1).setCellValue(nvl(dto.getDocumentoIdentidad()));
-                    row.createCell(2).setCellValue(nvl(dto.getCelular()));
+                    // El export/reporte mantiene PII enmascarada aunque la cola
+                    // interactiva muestre el dato real al colaborador dueño.
+                    row.createCell(1).setCellValue(
+                            ColaboradorColaService.enmascararSensible(dto.getDocumentoIdentidad()));
+                    row.createCell(2).setCellValue(
+                            ColaboradorColaService.enmascararSensible(dto.getCelular()));
                     row.createCell(3).setCellValue(nvl(dto.getCampania()));
                     row.createCell(4).setCellValue(nvl(dto.getEstado()));
                     row.createCell(5).setCellValue(nvl(dto.getEstadoResultado()));
