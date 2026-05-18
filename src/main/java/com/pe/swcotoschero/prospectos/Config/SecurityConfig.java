@@ -42,6 +42,9 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                     // Solo login es publico
                     .requestMatchers("/api/auth/login").permitAll()
+                    // Health/probes publicos (liveness/readiness para CI/orquestador);
+                    // el resto de /actuator/** queda protegido por anyRequest().authenticated()
+                    .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                     // Importacion requiere autenticacion y rol ADMINISTRADOR
                     // (la restriccion de rol la hace @PreAuthorize en el controller)
                     .requestMatchers(HttpMethod.POST, "/api/prospectos/importar").authenticated()

@@ -66,19 +66,22 @@ public class ContactoService {
     private final AperturaEventoRepository aperturaEventoRepository;
     private final ConfiguracionDuenoRepository configuracionDuenoRepository;
     private final EmailService emailService;
+    private final AsistenciaService asistenciaService;
 
     public ContactoService(ContactoRepository contactoRepository,
                            AsignacionRepository asignacionRepository,
                            ProspectoRepository prospectoRepository,
                            AperturaEventoRepository aperturaEventoRepository,
                            ConfiguracionDuenoRepository configuracionDuenoRepository,
-                           EmailService emailService) {
+                           EmailService emailService,
+                           AsistenciaService asistenciaService) {
         this.contactoRepository = contactoRepository;
         this.asignacionRepository = asignacionRepository;
         this.prospectoRepository = prospectoRepository;
         this.aperturaEventoRepository = aperturaEventoRepository;
         this.configuracionDuenoRepository = configuracionDuenoRepository;
         this.emailService = emailService;
+        this.asistenciaService = asistenciaService;
     }
 
     // =========================================================================
@@ -394,6 +397,25 @@ public class ContactoService {
     }
 
     /**
+     * Valida una fecha de agenda para AGENDADO / VOLVER_LLAMAR (3.1 — robustez):
+     *  - debe ser futura (no se puede agendar/recontactar en el pasado);
+     *  - debe caer en un día laborable (no domingo ni feriado de la empresa),
+     *    reusando la misma regla del calendario laboral (RF-22) para no agendar
+     *    en un día en que nadie trabajará el caso.
+     */
+    private void validarAgenda(LocalDateTime agenda, LocalDateTime ahora) {
+        if (!agenda.isAfter(ahora)) {
+            throw new IllegalArgumentException(
+                    "La fecha de agenda debe ser futura (posterior a la fecha y hora actual).");
+        }
+        if (!asistenciaService.esDiaLaborable(agenda.toLocalDate())) {
+            throw new IllegalArgumentException(
+                    "La fecha de agenda cae en un día no laborable (domingo o feriado). "
+                    + "Elija un día laborable.");
+        }
+    }
+
+    /**
      * Resuelve la duracion de la gestion:
      *  1. Si hay aperturaId: cierra el evento; usa duracionGestionSegundos si viene, si no calcula.
      *  2. Si no hay aperturaId: usa duracionGestionSegundos si viene.
@@ -460,6 +482,7 @@ public class ContactoService {
             case AGENDADO:
             case VOLVER_LLAMAR: {
                 LocalDateTime agenda = parseFechaAgenda(dto.getFechaAgenda());
+                validarAgenda(agenda, ahora);
                 asignacion.setEstado(EstadoGestion.EN_SEGUIMIENTO);
                 asignacion.setEstadoResultado(resultado);
                 asignacion.setFechaAgenda(agenda);
