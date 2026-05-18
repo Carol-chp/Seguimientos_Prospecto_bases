@@ -1,0 +1,10 @@
+target/
+*.iml
+.idea/
+.git/
+.github/
+k8s-manifests/
+.env
+*.log
+HELP.md
+requests/

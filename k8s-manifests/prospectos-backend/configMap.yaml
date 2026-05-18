@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prospectos-backend-app-config
+  namespace: backend-ns
+data:
+  SPRING_PROFILES_ACTIVE: "prod"
+  # Reutiliza el Postgres existente del clúster (postgres-infralub, ns default),
+  # base de datos dedicada "seguimiento_prospectos".
+  DB_URL: "jdbc:postgresql://postgres-infralub-service.default.svc.cluster.local:5432/seguimiento_prospectos"
+  DB_USER: "prospectos_user"
+  # Origen EXACTO del frontend (sin slash final).
+  CORS_ALLOWED_ORIGINS: "https://prospectos.pdmmonitor.com"
+  # Email (RF-07). Desactivado por defecto; el resumen 9pm se "salta" si está off.
+  MAIL_ENABLED: "false"
+  MAIL_HOST: "smtp.gmail.com"
+  MAIL_PORT: "587"
+  MAIL_RESUMEN_CRON: "0 0 21 * * *"

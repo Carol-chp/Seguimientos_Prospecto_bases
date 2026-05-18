@@ -1,0 +1,128 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prospectos-backend-app
+  namespace: backend-ns
+  labels:
+    app: prospectos-backend-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: prospectos-backend-app
+  template:
+    metadata:
+      labels:
+        app: prospectos-backend-app
+    spec:
+      containers:
+        - name: prospectos-backend-app
+          image: registry.registry.svc.cluster.local:5000/prospectos-backend-app:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8081
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              valueFrom:
+                configMapKeyRef:
+                  name: prospectos-backend-app-config
+                  key: SPRING_PROFILES_ACTIVE
+            - name: DB_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: prospectos-backend-app-config
+                  key: DB_URL
+            - name: DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: prospectos-backend-app-config
+                  key: DB_USER
+            - name: CORS_ALLOWED_ORIGINS
+              valueFrom:
+                configMapKeyRef:
+                  name: prospectos-backend-app-config
+                  key: CORS_ALLOWED_ORIGINS
+            - name: MAIL_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: prospectos-backend-app-config
+                  key: MAIL_ENABLED
+            - name: MAIL_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: prospectos-backend-app-config
+                  key: MAIL_HOST
+            - name: MAIL_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: prospectos-backend-app-config
+                  key: MAIL_PORT
+            - name: MAIL_RESUMEN_CRON
+              valueFrom:
+                configMapKeyRef:
+                  name: prospectos-backend-app-config
+                  key: MAIL_RESUMEN_CRON
+            # --- Secretos ---
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: prospectos-backend-app-secret
+                  key: DB_PASS
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: prospectos-backend-app-secret
+                  key: JWT_SECRET
+            - name: MAIL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: prospectos-backend-app-secret
+                  key: MAIL_USERNAME
+            - name: MAIL_APP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: prospectos-backend-app-secret
+                  key: MAIL_APP_PASSWORD
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          # Spring Boot Actuator (probes públicos, configurados en application.properties)
+          startupProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8081
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8081
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+      restartPolicy: Always
+      securityContext:
+        fsGroup: 1000
+      terminationGracePeriodSeconds: 30

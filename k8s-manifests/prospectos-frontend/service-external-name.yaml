@@ -1,0 +1,14 @@
+# Permite que pods en frontend-ns resuelvan el backend por nombre interno
+# (p. ej. para health checks o un futuro proxy nginx → backend sin salir del clúster).
+# El navegador del usuario sigue llamando al backend por su Ingress público (apiUrl).
+apiVersion: v1
+kind: Service
+metadata:
+  name: prospectos-backend-app-service
+  namespace: frontend-ns
+spec:
+  type: ExternalName
+  externalName: prospectos-backend-app-service.backend-ns.svc.cluster.local
+  ports:
+    - port: 80
+      targetPort: 8081

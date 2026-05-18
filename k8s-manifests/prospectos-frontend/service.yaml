@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: prospectos-frontend-app-service
+  namespace: frontend-ns
+  labels:
+    app: prospectos-frontend-app
+spec:
+  selector:
+    app: prospectos-frontend-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP

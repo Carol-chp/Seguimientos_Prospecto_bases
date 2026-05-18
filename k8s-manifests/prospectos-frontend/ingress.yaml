@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: prospectos-frontend-ingress
+  namespace: frontend-ns
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - prospectos.pdmmonitor.com
+      secretName: prospectos-frontend-tls
+  rules:
+    - host: prospectos.pdmmonitor.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: prospectos-frontend-app-service
+                port:
+                  number: 80

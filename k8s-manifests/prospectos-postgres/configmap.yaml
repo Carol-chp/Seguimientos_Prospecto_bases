@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prospectos-postgres-config
+  namespace: backend-ns
+data:
+  POSTGRES_DB: "seguimiento_prospectos"
+  POSTGRES_HOST: "prospectos-postgres-service.backend-ns.svc.cluster.local"
+  POSTGRES_PORT: "5432"
+  PGDATA: "/var/lib/postgresql/data/pgdata"
