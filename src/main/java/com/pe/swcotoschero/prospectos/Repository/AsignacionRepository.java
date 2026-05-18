@@ -102,6 +102,31 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Long> {
     Page<Asignacion> findPorCerrar(Pageable pageable);
 
     /**
+     * Casos ACTIVOS de un colaborador (reasignables): SIN_GESTIONAR, EN_GESTION,
+     * EN_SEGUIMIENTO. Excluye DERIVADO/GANADO/DESCARTADO (no se reasignan — 5j).
+     */
+    @Query("SELECT a FROM Asignacion a JOIN FETCH a.prospecto p LEFT JOIN FETCH p.campania " +
+           "WHERE a.usuario.id = :usuarioId AND a.estado IN (" +
+           "  com.pe.swcotoschero.prospectos.Entity.enums.EstadoGestion.SIN_GESTIONAR," +
+           "  com.pe.swcotoschero.prospectos.Entity.enums.EstadoGestion.EN_GESTION," +
+           "  com.pe.swcotoschero.prospectos.Entity.enums.EstadoGestion.EN_SEGUIMIENTO)")
+    List<Asignacion> findActivasByUsuario(@Param("usuarioId") Long usuarioId);
+
+    /**
+     * "En riesgo" (5j): casos de colaboradores ausentes hoy que son SIN_GESTIONAR
+     * o EN_SEGUIMIENTO vencido/de hoy (fechaAgenda <= fin de hoy). El estado NO se
+     * cambia (D2); es un bucket para que el dueño reasigne.
+     */
+    @Query("SELECT a FROM Asignacion a JOIN FETCH a.prospecto p " +
+           "LEFT JOIN FETCH p.campania JOIN FETCH a.usuario u " +
+           "WHERE u.id IN :ausentes AND (" +
+           "  a.estado = com.pe.swcotoschero.prospectos.Entity.enums.EstadoGestion.SIN_GESTIONAR " +
+           "  OR (a.estado = com.pe.swcotoschero.prospectos.Entity.enums.EstadoGestion.EN_SEGUIMIENTO " +
+           "      AND a.fechaAgenda IS NOT NULL AND a.fechaAgenda <= :finHoy))")
+    List<Asignacion> findEnRiesgo(@Param("ausentes") java.util.Collection<Long> ausentes,
+                                  @Param("finHoy") LocalDateTime finHoy);
+
+    /**
      * Job D7: ciclos GANADO cuya fecha de elegibilidad ya venció y aún no se
      * han reactivado (fechaElegibilidad != null). Se carga prospecto/usuario/admin
      * para clonar el ciclo nuevo sin N+1. El registro GANADO NO se muta (solo se

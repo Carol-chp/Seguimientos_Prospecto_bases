@@ -20,7 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -44,6 +46,7 @@ public class EmailService {
     private final ReportesService reportesService;
     private final ConfiguracionDuenoRepository configRepo;
     private final UsuarioRepository usuarioRepository;
+    private final com.pe.swcotoschero.prospectos.Repository.ContactoRepository contactoRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${spring.mail.username:}")
@@ -60,11 +63,13 @@ public class EmailService {
     public EmailService(ObjectProvider<JavaMailSender> mailSenderProvider,
                         ReportesService reportesService,
                         ConfiguracionDuenoRepository configRepo,
-                        UsuarioRepository usuarioRepository) {
+                        UsuarioRepository usuarioRepository,
+                        com.pe.swcotoschero.prospectos.Repository.ContactoRepository contactoRepository) {
         this.mailSenderProvider = mailSenderProvider;
         this.reportesService = reportesService;
         this.configRepo = configRepo;
         this.usuarioRepository = usuarioRepository;
+        this.contactoRepository = contactoRepository;
     }
 
     /** Resultado de un intento de envío (para el endpoint manual y el log). */
@@ -181,6 +186,131 @@ public class EmailService {
     }
 
     // ---------------------------------------------------------------------
+    // RF-06a / RF-06b — notificación por atención (instantáneo / digest c/5)
+    // ---------------------------------------------------------------------
+
+    /**
+     * Notifica al dueño tras registrar una atención (best-effort, async,
+     * NUNCA bloquea el registro). Respeta los toggles y app.mail.enabled.
+     * RF-06a: email instantáneo por atención (si toggle).
+     * RF-06b: digest cuando el colaborador llega a múltiplos de 5 atenciones hoy.
+     */
+    @org.springframework.scheduling.annotation.Async
+    @Transactional(readOnly = true)
+    public void notificarAtencionAsync(Long contactoId) {
+        try {
+            if (!mailEnabled) return;
+            var mailSender = mailSenderProvider.getIfAvailable();
+            if (mailSender == null || contactoId == null) return;
+
+            ConfiguracionDueno cfg = configRepo.findTopByOrderByIdAsc()
+                    .orElseGet(ConfiguracionDueno::new);
+            boolean inst = Boolean.TRUE.equals(cfg.getToggleEmailInstantaneo());
+            boolean digest = Boolean.TRUE.equals(cfg.getToggleEmailDigest());
+            if (!inst && !digest) return;
+
+            var contacto = contactoRepository.findById(contactoId).orElse(null);
+            if (contacto == null || contacto.getAsignacion() == null) return;
+            var asig = contacto.getAsignacion();
+            var colaborador = asig.getUsuario();
+            var prospecto = asig.getProspecto();
+            if (colaborador == null || prospecto == null) return;
+
+            com.pe.swcotoschero.prospectos.Entity.Usuario dueno = usuarioRepository
+                    .findByRol_IdAndEstadoOrderByNombreAsc(ADMIN_ROL_ID, true)
+                    .stream().findFirst().orElse(null);
+            if (dueno == null || dueno.getEmail() == null || dueno.getEmail().isBlank()) return;
+
+            String colab = (colaborador.getNombre() + " " + colaborador.getApellidos()).trim();
+            String prosp = (prospecto.getNombre() + " " + prospecto.getApellido()).trim()
+                    + " — cel " + mask(prospecto.getCelular())
+                    + " / DNI " + mask(prospecto.getDocumentoIdentidad());
+            String resultado = contacto.getEstadoResultado() != null
+                    ? contacto.getEstadoResultado().name()
+                    : (contacto.getVerificacionSbs() != null
+                        ? "SBS " + contacto.getVerificacionSbs().name() : "—");
+
+            LocalDate hoy = LocalDate.now();
+            List<com.pe.swcotoschero.prospectos.Entity.Contacto> delDia =
+                    contactoRepository.findActividadDelDia(colaborador.getId(),
+                            hoy.atStartOfDay(), hoy.atTime(LocalTime.MAX));
+            int total = delDia.size();
+
+            if (inst) {
+                String html = "<div style=\"font-family:Arial,sans-serif\">"
+                        + "<p><b>" + esc(colab) + "</b> registró una atención.</p>"
+                        + "<p>Prospecto: " + esc(prosp) + "<br>"
+                        + "Resultado: <b>" + esc(resultado) + "</b>"
+                        + (contacto.getQuienContesto() != null
+                            ? " (contestó: " + contacto.getQuienContesto().name() + ")" : "")
+                        + "<br>Comentario: " + esc(nz(contacto.getComentario())) + "</p>"
+                        + "<p style=\"color:#666\">Acumulado de hoy de " + esc(colab)
+                        + ": " + total + " atenciones.</p></div>";
+                enviarSimple(mailSender, dueno.getEmail(),
+                        "[Prospectos] " + colab + ": " + resultado + " — "
+                        + prospecto.getNombre(), html);
+            }
+
+            if (digest && total > 0 && total % 5 == 0) {
+                StringBuilder sb = new StringBuilder("<div style=\"font-family:Arial,sans-serif\">");
+                sb.append("<h3>").append(esc(colab))
+                  .append(" — últimas 5 atenciones</h3>");
+                sb.append("<table border=\"1\" cellpadding=\"6\" "
+                        + "style=\"border-collapse:collapse;font-size:13px\">"
+                        + "<tr style=\"background:#f0f0fb\"><th>Hora</th><th>Resultado</th>"
+                        + "<th>Quién</th><th>Comentario</th></tr>");
+                delDia.stream().limit(5).forEach(c -> sb.append("<tr><td>")
+                        .append(c.getFechaContacto() != null
+                            ? c.getFechaContacto().toLocalTime().withNano(0) : "")
+                        .append("</td><td>").append(c.getEstadoResultado() != null
+                            ? c.getEstadoResultado().name() : "—")
+                        .append("</td><td>").append(c.getQuienContesto() != null
+                            ? c.getQuienContesto().name() : "—")
+                        .append("</td><td>").append(esc(nz(c.getComentario())))
+                        .append("</td></tr>"));
+                sb.append("</table><p style=\"color:#666\">Acumulado de hoy: ")
+                  .append(total).append(" atenciones.</p></div>");
+                enviarSimple(mailSender, dueno.getEmail(),
+                        "[Prospectos] " + colab + ": 5 atenciones", sb.toString());
+            }
+        } catch (Exception e) {
+            // best-effort: nunca propaga al registro de la atención
+            log.warn("notificarAtencion: fallo best-effort: {}", e.getMessage());
+        }
+    }
+
+    private void enviarSimple(JavaMailSender mailSender, String to,
+                              String asunto, String html) {
+        try {
+            jakarta.mail.internet.MimeMessage msg = mailSender.createMimeMessage();
+            MimeMessageHelper h = new MimeMessageHelper(msg, false, "UTF-8");
+            if (fromAddress != null && !fromAddress.isBlank()) h.setFrom(fromAddress);
+            h.setTo(to);
+            h.setSubject(asunto);
+            h.setText(html, true);
+            mailSender.send(msg);
+            log.info("Email '{}' enviado a {}", asunto, to);
+        } catch (Exception e) {
+            log.warn("Email '{}' falló (best-effort): {}", asunto, e.getMessage());
+        }
+    }
+
+    private static String nz(String s) { return s == null ? "" : s; }
+
+    /** Enmascara dejando los últimos 3 caracteres visibles (privacidad en correo). */
+    private static String mask(String v) {
+        if (v == null || v.isBlank()) return "";
+        String t = v.trim();
+        if (t.length() <= 3) return "***";
+        return "*".repeat(t.length() - 3) + t.substring(t.length() - 3);
+    }
+
+    private static String esc(String s) {
+        return s == null ? "" : s.replace("&", "&amp;")
+                .replace("<", "&lt;").replace(">", "&gt;");
+    }
+
+    // ---------------------------------------------------------------------
     // HTML del resumen — genérico sobre el JSON del dashboard (RF-11)
     // ---------------------------------------------------------------------
 
@@ -221,6 +351,40 @@ public class EmailService {
 
         sb.append("<p><b>Por cerrar (derivados pendientes):</b> ")
           .append(d.path("porCerrar").asText("0")).append("</p>");
+
+        // 2.4 — Asistencia del día / casos "En riesgo" (RF-22 / 5j)
+        JsonNode as = d.path("asistencia");
+        sb.append("<h3>Asistencia de hoy</h3>");
+        if (!as.path("esLaborable").asBoolean(true)) {
+            sb.append("<p>Hoy no es día laborable.</p>");
+        } else {
+            sb.append("<p>")
+              .append(txt(as, "totalColaboradores")).append(" colaboradores · ")
+              .append("<b style=\"color:")
+              .append(as.path("totalAusentes").asInt(0) > 0 ? "#c0392b" : "#27ae60")
+              .append("\">").append(as.path("totalAusentes").asText("0"))
+              .append(" ausente(s)</b></p>");
+            sb.append("<table border=\"1\" cellpadding=\"6\" cellspacing=\"0\" "
+                    + "style=\"border-collapse:collapse;font-size:13px\">");
+            sb.append("<tr style=\"background:#f0f0fb\"><th>Colaborador</th>"
+                    + "<th>Jornada</th><th>Inicio</th><th>Estado</th></tr>");
+            for (JsonNode c : as.path("colaboradores")) {
+                boolean ausente = c.path("ausente").asBoolean(false);
+                sb.append("<tr><td>").append(txt(c, "nombre"))
+                  .append("</td><td align=\"center\">")
+                  .append(c.path("jornadaIniciada").asBoolean(false) ? "Sí" : "No")
+                  .append("</td><td align=\"center\">").append(txt(c, "inicio"))
+                  .append("</td><td align=\"center\" style=\"color:")
+                  .append(ausente ? "#c0392b\"><b>Ausente</b>" : "#27ae60\">Presente")
+                  .append("</td></tr>");
+            }
+            sb.append("</table>");
+        }
+        long enRiesgo = d.path("porEnRiesgo").asLong(0);
+        sb.append("<p><b>Casos \"En riesgo\" (por reasignar):</b> "
+                + "<span style=\"color:")
+          .append(enRiesgo > 0 ? "#c0392b" : "#27ae60")
+          .append("\"><b>").append(enRiesgo).append("</b></span></p>");
 
         sb.append("<h3>Estado de bases</h3>");
         sb.append("<table border=\"1\" cellpadding=\"6\" cellspacing=\"0\" "

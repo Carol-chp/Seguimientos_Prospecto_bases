@@ -2,6 +2,7 @@ package com.pe.swcotoschero.prospectos.Controller;
 
 import com.pe.swcotoschero.prospectos.Entity.Usuario;
 import com.pe.swcotoschero.prospectos.Repository.UsuarioRepository;
+import com.pe.swcotoschero.prospectos.Service.BitacoraService;
 import com.pe.swcotoschero.prospectos.Service.ReportesService;
 import com.pe.swcotoschero.prospectos.dto.reporte.DashboardDTO;
 import org.slf4j.Logger;
@@ -40,11 +41,14 @@ public class ReportesController {
 
     private final ReportesService reportesService;
     private final UsuarioRepository usuarioRepository;
+    private final BitacoraService bitacoraService;
 
     public ReportesController(ReportesService reportesService,
-                               UsuarioRepository usuarioRepository) {
+                               UsuarioRepository usuarioRepository,
+                               BitacoraService bitacoraService) {
         this.reportesService = reportesService;
         this.usuarioRepository = usuarioRepository;
+        this.bitacoraService = bitacoraService;
     }
 
     // =========================================================================
@@ -154,6 +158,64 @@ public class ReportesController {
             throw e; // GlobalExceptionHandler -> 400
         } catch (Exception e) {
             log.error("Error generando Excel de mis prospectos", e);
+            throw new RuntimeException("Error generando el reporte Excel");
+        }
+    }
+
+    // =========================================================================
+    // 5. Bitácora global de atenciones (RF-20 / §5h) — solo ADMINISTRADOR
+    // =========================================================================
+
+    /**
+     * Bitácora paginada con filtros opcionales: rango de fechas (AAAA-MM-DD),
+     * colaborador, campaña, base (cargaMasivaId), resultado, quién contestó.
+     */
+    @GetMapping("/bitacora")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    public ResponseEntity<Map<String, Object>> bitacora(
+            @RequestParam(required = false) String desde,
+            @RequestParam(required = false) String hasta,
+            @RequestParam(required = false) Long colaboradorId,
+            @RequestParam(required = false) String campania,
+            @RequestParam(required = false) Long baseId,
+            @RequestParam(required = false) String resultado,
+            @RequestParam(required = false) String quienContesto,
+            @RequestParam(defaultValue = "1") int pagina,
+            @RequestParam(defaultValue = "50") int tamano) {
+
+        return ResponseEntity.ok(bitacoraService.buscar(
+                desde, hasta, colaboradorId, campania, baseId,
+                resultado, quienContesto, pagina, tamano));
+    }
+
+    /** Export Excel del resultado filtrado de la bitácora. */
+    @GetMapping("/bitacora/exportar")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    public ResponseEntity<byte[]> exportarBitacora(
+            @RequestParam(required = false) String desde,
+            @RequestParam(required = false) String hasta,
+            @RequestParam(required = false) Long colaboradorId,
+            @RequestParam(required = false) String campania,
+            @RequestParam(required = false) Long baseId,
+            @RequestParam(required = false) String resultado,
+            @RequestParam(required = false) String quienContesto) {
+
+        try {
+            byte[] xlsx = bitacoraService.exportar(
+                    desde, hasta, colaboradorId, campania, baseId, resultado, quienContesto);
+            return ResponseEntity.ok()
+                    .contentType(XLSX_MEDIA_TYPE)
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            ContentDisposition.attachment()
+                                    .filename("bitacora.xlsx")
+                                    .build()
+                                    .toString())
+                    .body(xlsx);
+        } catch (IllegalArgumentException e) {
+            log.warn("Parametros invalidos en bitacora/exportar: {}", e.getMessage());
+            throw e; // GlobalExceptionHandler -> 400
+        } catch (Exception e) {
+            log.error("Error generando Excel de bitacora", e);
             throw new RuntimeException("Error generando el reporte Excel");
         }
     }

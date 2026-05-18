@@ -19,4 +19,11 @@ public class DashboardDTO {
     private EmbudoDTO embudo;
     private long porCerrar;
     private List<BaseResumenDTO> bases;
+
+    /** Asistencia del día (RF-22 / 2.4): {fecha, esLaborable, totalColaboradores,
+     *  totalAusentes, colaboradores:[{usuarioId,nombre,jornadaIniciada,inicio,fin,ausente}]}. */
+    private Object asistencia;
+
+    /** Casos "En riesgo" (5j / 2.3): de colaboradores ausentes hoy, por reasignar. */
+    private long porEnRiesgo;
 }

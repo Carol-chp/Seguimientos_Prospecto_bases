@@ -65,17 +65,20 @@ public class ContactoService {
     private final ProspectoRepository prospectoRepository;
     private final AperturaEventoRepository aperturaEventoRepository;
     private final ConfiguracionDuenoRepository configuracionDuenoRepository;
+    private final EmailService emailService;
 
     public ContactoService(ContactoRepository contactoRepository,
                            AsignacionRepository asignacionRepository,
                            ProspectoRepository prospectoRepository,
                            AperturaEventoRepository aperturaEventoRepository,
-                           ConfiguracionDuenoRepository configuracionDuenoRepository) {
+                           ConfiguracionDuenoRepository configuracionDuenoRepository,
+                           EmailService emailService) {
         this.contactoRepository = contactoRepository;
         this.asignacionRepository = asignacionRepository;
         this.prospectoRepository = prospectoRepository;
         this.aperturaEventoRepository = aperturaEventoRepository;
         this.configuracionDuenoRepository = configuracionDuenoRepository;
+        this.emailService = emailService;
     }
 
     // =========================================================================
@@ -254,6 +257,10 @@ public class ContactoService {
         Prospecto prospecto = asignacion.getProspecto();
         prospecto.setEstadoInteresado(resultado == ResultadoAtencion.INTERESADO);
         prospectoRepository.save(prospecto);
+
+        // RF-06a/06b: notificación al dueño (async, best-effort, no bloquea
+        // el registro; respeta toggles y app.mail.enabled internamente).
+        emailService.notificarAtencionAsync(contacto.getContactoID());
 
         Map<String, Object> respuesta = new LinkedHashMap<>();
         respuesta.put("ok", true);

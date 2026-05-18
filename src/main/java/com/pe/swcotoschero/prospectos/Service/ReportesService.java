@@ -65,17 +65,23 @@ public class ReportesService {
     private final CargaMasivaRepository cargaMasivaRepository;
     private final UsuarioRepository usuarioRepository;
     private final ColaboradorColaService colaboradorColaService;
+    private final AsistenciaService asistenciaService;
+    private final ReasignacionService reasignacionService;
 
     public ReportesService(AsignacionRepository asignacionRepository,
                            ContactoRepository contactoRepository,
                            CargaMasivaRepository cargaMasivaRepository,
                            UsuarioRepository usuarioRepository,
-                           ColaboradorColaService colaboradorColaService) {
+                           ColaboradorColaService colaboradorColaService,
+                           AsistenciaService asistenciaService,
+                           ReasignacionService reasignacionService) {
         this.asignacionRepository = asignacionRepository;
         this.contactoRepository = contactoRepository;
         this.cargaMasivaRepository = cargaMasivaRepository;
         this.usuarioRepository = usuarioRepository;
         this.colaboradorColaService = colaboradorColaService;
+        this.asistenciaService = asistenciaService;
+        this.reasignacionService = reasignacionService;
     }
 
     // =========================================================================
@@ -108,6 +114,17 @@ public class ReportesService {
         long porCerrar = asignacionRepository.countDerivadosGlobal();
         List<BaseResumenDTO> bases = calcularBases();
 
+        // 2.4 — bloque asistencia / ausentes / "En riesgo" (RF-22 / 5j)
+        Object asistencia = asistenciaService.asistenciaHoy();
+        long porEnRiesgo;
+        try {
+            Object total = reasignacionService.enRiesgo().get("total");
+            porEnRiesgo = total instanceof Number n ? n.longValue() : 0L;
+        } catch (Exception e) {
+            log.warn("Dashboard: no se pudo calcular En riesgo: {}", e.getMessage());
+            porEnRiesgo = 0L;
+        }
+
         return DashboardDTO.builder()
                 .dia(metricasDia)
                 .mes(metricasMes)
@@ -115,6 +132,8 @@ public class ReportesService {
                 .embudo(embudo)
                 .porCerrar(porCerrar)
                 .bases(bases)
+                .asistencia(asistencia)
+                .porEnRiesgo(porEnRiesgo)
                 .build();
     }
 
