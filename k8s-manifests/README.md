@@ -49,7 +49,8 @@ sudo kubectl -n backend-ns exec deploy/prospectos-backend-app -- \
 
 ## Editar si cambia el dominio
 
-- Ingress backend: `api.prospectos.pdmmonitor.com` · frontend: `prospectos.pdmmonitor.com`.
+- Ingress backend: `prospectos-api.pdmmonitor.com` · frontend: `prospectos.pdmmonitor.com`
+  (un solo nivel bajo pdmmonitor.com → cubierto por el wildcard TLS `*.pdmmonitor.com`).
 - `prospectos-backend/configMap.yaml` → `CORS_ALLOWED_ORIGINS` = URL pública exacta del front.
 - `propectos_front/Jenkinsfile` → `API_URL` (se hornea en la imagen del front).
 

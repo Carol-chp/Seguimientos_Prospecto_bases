@@ -9,10 +9,10 @@ spec:
   ingressClassName: traefik
   tls:
     - hosts:
-        - api.prospectos.pdmmonitor.com
+        - prospectos-api.pdmmonitor.com
       secretName: prospectos-backend-tls
   rules:
-    - host: api.prospectos.pdmmonitor.com
+    - host: prospectos-api.pdmmonitor.com
       http:
         paths:
           - path: /
