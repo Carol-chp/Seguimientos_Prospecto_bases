@@ -5,6 +5,8 @@ metadata:
   namespace: backend-ns
 data:
   SPRING_PROFILES_ACTIVE: "prod"
+  # Zona horaria del negocio (Perú) — horas del server en local Lima.
+  TZ: "America/Lima"
   # Reutiliza el Postgres existente del clúster (postgres-infralub, ns default),
   # base de datos dedicada "seguimiento_prospectos".
   DB_URL: "jdbc:postgresql://postgres-infralub-service.default.svc.cluster.local:5432/seguimiento_prospectos"

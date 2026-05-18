@@ -27,6 +27,11 @@ spec:
                 configMapKeyRef:
                   name: prospectos-backend-app-config
                   key: SPRING_PROFILES_ACTIVE
+            - name: TZ
+              valueFrom:
+                configMapKeyRef:
+                  name: prospectos-backend-app-config
+                  key: TZ
             - name: DB_URL
               valueFrom:
                 configMapKeyRef:

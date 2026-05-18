@@ -23,6 +23,10 @@ COPY --from=build /workspace/app.jar /app/app.jar
 USER 10001:10001
 
 EXPOSE 8081
-ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0"
+# Zona horaria del negocio (Perú). Así LocalDateTime.now() del server es hora
+# local Lima y el front muestra las horas correctas (inicio de jornada, agenda,
+# bitácora, etc.) sin desfase GMT.
+ENV TZ="America/Lima"
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0 -Duser.timezone=America/Lima"
 # El perfil/secretos llegan por variables de entorno (ConfigMap/Secret en k8s).
 ENTRYPOINT ["sh","-c","exec java $JAVA_OPTS -jar /app/app.jar"]
