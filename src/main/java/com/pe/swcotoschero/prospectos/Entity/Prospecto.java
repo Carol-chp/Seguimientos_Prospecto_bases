@@ -49,6 +49,14 @@ public class Prospecto {
     @Column(name = "estado_interesado")
     private Boolean estadoInteresado;
 
+    /**
+     * Numero de prestamos concretados (ciclos GANADO) del prospecto.
+     * Alimenta el badge "Cliente recurrente" (RF-17e / D7.b).
+     * Se incrementa cada vez que el dueno registra una VENTA -> GANADO.
+     */
+    @Column(name = "nro_prestamos_concretados")
+    private Integer nroPrestamosConcretados = 0;
+
     @Transient
     private String comentario;
 

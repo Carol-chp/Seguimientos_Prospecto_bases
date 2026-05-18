@@ -37,3 +37,7 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### Variables de entorno — NUNCA commitear .env con secretos reales ###
+.env
+*.env.local

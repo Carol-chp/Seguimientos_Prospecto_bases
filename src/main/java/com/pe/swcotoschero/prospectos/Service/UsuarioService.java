@@ -30,18 +30,8 @@ public class UsuarioService {
     // ID del rol de administrador (según datos de la BD)
     private static final Long ADMIN_ROLE_ID = 1L;
 
-    public void register() {
-        Usuario usuario = new Usuario();
-        usuario.setUsuario("JCOTOS");
-        usuario.setPassword(passwordEncoder.encode("123456"));
-        usuario.setNombre("Johnny");
-        usuario.setApellidos("Cotos");
-        usuario.setEmail("jrcotos@gmail.com");
-        usuario.setEstado(true);
-        usuario.setRol(new Rol());
-        usuario.getRol().setId(1L);
-        usuarioRepository.save(usuario);
-    }
+    // register() eliminado en Fase 0.3.
+    // La creacion de usuarios se realiza a traves del endpoint /api/usuarios (rol ADMINISTRADOR).
 
     /**
      * Crear un nuevo usuario

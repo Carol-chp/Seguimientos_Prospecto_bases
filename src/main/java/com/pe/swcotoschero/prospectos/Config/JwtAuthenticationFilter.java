@@ -34,26 +34,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
         final String userEmail;
-        final String requestUri = request.getRequestURI();
 
-        // Ignorar solicitudes OPTIONS
+        // Ignorar solicitudes OPTIONS (preflight CORS)
         if (request.getMethod().equalsIgnoreCase("OPTIONS")) {
             chain.doFilter(request, response);
             return;
         }
-        log.info("Request URI: " + request.getRequestURI());
-        log.info("Authorization Header: " + request.getHeader("Authorization"));
 
-
-
+        // Sin token Bearer: se deja pasar y SecurityConfig decide (login es
+        // permitAll; el resto lo rechaza .authenticated()).
+        // NOTA: el antiguo skip por ruta ("importar"/"test"/"/api/auth/**")
+        // quedó obsoleto tras Fase 0.3 y dejaba /api/prospectos/importar
+        // inaccesible incluso con token válido → eliminado.
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            chain.doFilter(request, response);
-            return;
-        }
-        if (requestUri.equals("/api/auth/**") ||
-                requestUri.equals("/api/prospectos/test") ||
-                requestUri.equals("/api/prospectos/importar")) {
-            log.info("Saltando filtro JWT para la ruta pública: " + requestUri);
             chain.doFilter(request, response);
             return;
         }

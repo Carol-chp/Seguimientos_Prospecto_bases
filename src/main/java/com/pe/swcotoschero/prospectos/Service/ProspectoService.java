@@ -7,6 +7,8 @@ import com.pe.swcotoschero.prospectos.Repository.CampaniaRepository;
 import com.pe.swcotoschero.prospectos.Repository.CargaMasivaRepository;
 import com.pe.swcotoschero.prospectos.Repository.ProspectoRepository;
 import com.pe.swcotoschero.prospectos.dto.ArchivoBase64Request;
+import com.pe.swcotoschero.prospectos.dto.ImportacionResultDTO;
+import com.pe.swcotoschero.prospectos.dto.LecturaExcelResultado;
 import com.pe.swcotoschero.prospectos.dto.ProspectoDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -54,54 +56,85 @@ public class ProspectoService {
 
 
 
-    public void importartDesdeExcel(ArchivoBase64Request request){
-        try {
+    /** Tamaño máximo del archivo decodificado (defensa ante payloads enormes). */
+    private static final int MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
-            List<ProspectoDTO> prospectos = obtenerProspectoDTOS(request);
-
-            log.info("Archivo importado exitosamente");
-            log.info("Prospectos importados: " + prospectos.size());
-
-            // Creamos un registro de carga masiva
-            CargaMasiva cargaMasiva = new CargaMasiva();
-            cargaMasiva.setNombrearchivo(request.getFilename());
-            cargaMasiva.setFecha(LocalDateTime.now());
-            cargaMasiva.setCantidadProspectos(prospectos.size());
-            cargaMasiva.setEstadoAsignacion("SIN_ASIGNAR");
-            cargaMasivaRepository.save(cargaMasiva);
-
-
-            List<Prospecto> prospectosMapeados = mapFromDto(prospectos, cargaMasiva);
-            prospectoRepository.saveAll(prospectosMapeados);
-            
-            // Actualizar el conteo real de prospectos guardados
-            cargaMasiva.setCantidadProspectos(prospectosMapeados.size());
-            cargaMasivaRepository.save(cargaMasiva);
-//
-
-        } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Error al decodificar el archivo Base64: " + e.getMessage());
-        } catch (IOException e) {
-            throw new RuntimeException("Error al procesar el archivo: " + e.getMessage());
+    /**
+     * Importa prospectos desde un Excel en Base64.
+     * Valida tamaño, Base64, formato Excel y campos obligatorios por fila.
+     * Lanza IllegalArgumentException (→ 400) ante cualquier entrada inválida.
+     */
+    public ImportacionResultDTO importartDesdeExcel(ArchivoBase64Request request) {
+        if (request == null || request.getFileContent() == null
+                || request.getFileContent().isBlank()) {
+            throw new IllegalArgumentException("El contenido del archivo es obligatorio.");
         }
+
+        LecturaExcelResultado lectura = obtenerProspectoDTOS(request);
+
+        if (lectura.getValidos().isEmpty()) {
+            throw new IllegalArgumentException(
+                    "El archivo no contiene ninguna fila válida para importar."
+                    + (lectura.getRechazadas().isEmpty()
+                        ? ""
+                        : " Filas rechazadas: " + lectura.getRechazadas().size() + "."));
+        }
+
+        CargaMasiva cargaMasiva = new CargaMasiva();
+        cargaMasiva.setNombrearchivo(request.getFilename());
+        cargaMasiva.setFecha(LocalDateTime.now());
+        cargaMasiva.setEstadoAsignacion("SIN_ASIGNAR");
+        cargaMasivaRepository.save(cargaMasiva);
+
+        List<Prospecto> prospectosMapeados = mapFromDto(lectura.getValidos(), cargaMasiva);
+        prospectoRepository.saveAll(prospectosMapeados);
+
+        cargaMasiva.setCantidadProspectos(prospectosMapeados.size());
+        cargaMasivaRepository.save(cargaMasiva);
+
+        log.info("Importación: {} válidos, {} rechazados (carga {})",
+                prospectosMapeados.size(), lectura.getRechazadas().size(), cargaMasiva.getId());
+
+        return ImportacionResultDTO.builder()
+                .success(true)
+                .mensaje("Importación completada.")
+                .cargaMasivaId(cargaMasiva.getId())
+                .importados(prospectosMapeados.size())
+                .rechazados(lectura.getRechazadas().size())
+                .detalleRechazos(lectura.getRechazadas())
+                .build();
     }
 
-    private List<ProspectoDTO> obtenerProspectoDTOS(ArchivoBase64Request request) throws IOException {
-        // Decodificar el contenido Base64
-        byte[] decodedBytes = Base64.getDecoder().decode(request.getFileContent());
-
-        // Crear un archivo temporal para procesarlo
-        File tempFile = File.createTempFile("temp-prospects", ".xlsx");
-        try (FileOutputStream fos = new FileOutputStream(tempFile)) {
-            fos.write(decodedBytes);
-
+    private LecturaExcelResultado obtenerProspectoDTOS(ArchivoBase64Request request) {
+        final byte[] decodedBytes;
+        try {
+            decodedBytes = Base64.getDecoder().decode(request.getFileContent());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("El contenido no es Base64 válido.");
         }
 
-        List<ProspectoDTO> prospectos = excelUploadService.leerExcel(tempFile);
+        if (decodedBytes.length == 0) {
+            throw new IllegalArgumentException("El archivo está vacío.");
+        }
+        if (decodedBytes.length > MAX_BYTES) {
+            throw new IllegalArgumentException(
+                    "El archivo excede el tamaño máximo permitido (10 MB).");
+        }
 
-        // Eliminar el archivo temporal después del uso
-        tempFile.delete();
-        return prospectos;
+        File tempFile = null;
+        try {
+            tempFile = File.createTempFile("prospects-import-", ".xlsx");
+            try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                fos.write(decodedBytes);
+            }
+            return excelUploadService.leerExcel(tempFile);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("No se pudo procesar el archivo: " + e.getMessage());
+        } finally {
+            if (tempFile != null && tempFile.exists() && !tempFile.delete()) {
+                tempFile.deleteOnExit();
+            }
+        }
     }
 
 

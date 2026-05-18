@@ -4,15 +4,18 @@ import com.pe.swcotoschero.prospectos.Entity.Asignacion;
 import com.pe.swcotoschero.prospectos.Entity.CargaMasiva;
 import com.pe.swcotoschero.prospectos.Entity.Prospecto;
 import com.pe.swcotoschero.prospectos.Entity.Usuario;
+import com.pe.swcotoschero.prospectos.Entity.enums.EstadoGestion;
 import com.pe.swcotoschero.prospectos.Repository.AsignacionRepository;
 import com.pe.swcotoschero.prospectos.Repository.CargaMasivaRepository;
 import com.pe.swcotoschero.prospectos.Repository.ProspectoRepository;
 import com.pe.swcotoschero.prospectos.Repository.UsuarioRepository;
+import com.pe.swcotoschero.prospectos.dto.AsignacionMultiRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,6 +23,7 @@ import java.util.Optional;
 
 @Service
 public class AsignacionService {
+
     @Autowired
     private AsignacionRepository asignacionRepository;
 
@@ -52,80 +56,82 @@ public class AsignacionService {
     }
 
     /**
-     * Asigna prospectos de una carga masiva a un usuario específico.
-     * Solo asigna prospectos que aún no tienen asignación.
-     * Si se indica cantidad, solo asigna esa cantidad; si no, asigna todos los disponibles.
+     * Asigna prospectos de una carga masiva a un usuario especifico.
+     * Solo asigna prospectos que aun no tienen asignacion activa.
+     * Estado inicial canonico: SIN_GESTIONAR.
      *
-     * @param cargaMasivaId ID de la carga masiva
-     * @param usuarioId ID del usuario al que se asignarán los prospectos
-     * @param administradorId ID del administrador que realiza la asignación
-     * @param cantidad Cantidad de prospectos a asignar (null = todos los disponibles)
-     * @return Map con el resultado de la operación
+     * @param cargaMasivaId   ID de la carga masiva
+     * @param usuarioId       ID del colaborador al que se asignaran los prospectos
+     * @param administradorId ID del administrador que realiza la asignacion
+     * @param cantidad        Cantidad de prospectos a asignar (null = todos los disponibles)
+     * @return Map con el resultado de la operacion
      */
     @Transactional
-    public Map<String, Object> asignarCargaMasivaAUsuario(Long cargaMasivaId, Long usuarioId, Long administradorId, Integer cantidad) {
-        // Validar que la carga masiva existe
+    public Map<String, Object> asignarCargaMasivaAUsuario(Long cargaMasivaId, Long usuarioId,
+                                                           Long administradorId, Integer cantidad) {
         CargaMasiva cargaMasiva = cargaMasivaRepository.findById(cargaMasivaId)
-                .orElseThrow(() -> new IllegalArgumentException("Carga masiva no encontrada con ID: " + cargaMasivaId));
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Carga masiva no encontrada con ID: " + cargaMasivaId));
 
-        // Validar que el usuario existe
         Usuario usuario = usuarioRepository.findById(usuarioId)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado con ID: " + usuarioId));
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Usuario no encontrado con ID: " + usuarioId));
 
-        // Validar que el administrador existe
         Usuario administrador = usuarioRepository.findById(administradorId)
-                .orElseThrow(() -> new IllegalArgumentException("Administrador no encontrado con ID: " + administradorId));
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Administrador no encontrado con ID: " + administradorId));
 
-        // Obtener solo prospectos SIN asignación
-        List<Prospecto> prospectosSinAsignar = prospectoRepository.findUnassignedByCargaMasiva(cargaMasiva);
+        List<Prospecto> prospectosSinAsignar =
+                prospectoRepository.findUnassignedByCargaMasiva(cargaMasiva);
 
         if (prospectosSinAsignar.isEmpty()) {
-            throw new IllegalArgumentException("No hay prospectos disponibles para asignar en esta carga masiva");
+            throw new IllegalArgumentException(
+                    "No hay prospectos disponibles para asignar en esta carga masiva");
         }
 
-        // Validar cantidad si se especificó
         if (cantidad != null) {
             if (cantidad <= 0) {
                 throw new IllegalArgumentException("La cantidad debe ser mayor a 0");
             }
             if (cantidad > prospectosSinAsignar.size()) {
-                throw new IllegalArgumentException("La cantidad solicitada (" + cantidad + ") excede los prospectos disponibles (" + prospectosSinAsignar.size() + ")");
+                throw new IllegalArgumentException(
+                        "La cantidad solicitada (" + cantidad + ") excede los prospectos disponibles ("
+                        + prospectosSinAsignar.size() + ")");
             }
         }
 
-        // Determinar los prospectos a asignar
         List<Prospecto> prospectosAAsignar = cantidad != null
                 ? prospectosSinAsignar.stream().limit(cantidad).toList()
                 : prospectosSinAsignar;
 
-        // Crear asignaciones en lote
+        LocalDateTime ahora = LocalDateTime.now();
+
         List<Asignacion> nuevasAsignaciones = prospectosAAsignar.stream()
                 .map(prospecto -> {
                     Asignacion asignacion = new Asignacion();
                     asignacion.setProspecto(prospecto);
                     asignacion.setUsuario(usuario);
                     asignacion.setAdministrador(administrador);
-                    asignacion.setFechaAsignacion(LocalDateTime.now());
-                    asignacion.setEstado("Pendiente");
+                    asignacion.setAsignadoPor(administrador);
+                    asignacion.setFechaAsignacion(ahora);
+                    asignacion.setFechaAsignacionRegistro(ahora);
+                    // Estado inicial canonico — sin literales de texto
+                    asignacion.setEstado(EstadoGestion.SIN_GESTIONAR);
                     return asignacion;
                 })
                 .toList();
 
-        // Guardar todas las asignaciones
         if (!nuevasAsignaciones.isEmpty()) {
             asignacionRepository.saveAll(nuevasAsignaciones);
         }
 
-        // Actualizar estado de asignación de la carga masiva
         cargaMasivaService.actualizarEstadoAsignacion(cargaMasivaId);
 
-        // Calcular prospectos restantes sin asignar
         int restantes = prospectosSinAsignar.size() - prospectosAAsignar.size();
 
-        // Preparar respuesta con estadísticas
         Map<String, Object> resultado = new HashMap<>();
         resultado.put("success", true);
-        resultado.put("mensaje", "Asignación completada exitosamente");
+        resultado.put("mensaje", "Asignacion completada exitosamente");
         resultado.put("cargaMasivaId", cargaMasivaId);
         resultado.put("cargaMasivaNombre", cargaMasiva.getNombrearchivo());
         resultado.put("usuarioId", usuarioId);
@@ -133,44 +139,151 @@ public class AsignacionService {
         resultado.put("totalProspectos", prospectosSinAsignar.size());
         resultado.put("nuevasAsignaciones", nuevasAsignaciones.size());
         resultado.put("prospectosSinAsignar", restantes);
-        resultado.put("fechaAsignacion", LocalDateTime.now());
-
+        resultado.put("fechaAsignacion", ahora);
         return resultado;
     }
 
     /**
-     * Obtiene estadísticas generales de asignaciones
-     * 
-     * @return Map con las estadísticas
+     * Reparte prospectos de una carga a VARIOS colaboradores en un solo flujo (RF-19).
+     * Solo cantidad exacta. La suma de cantidades no puede exceder los prospectos
+     * sin asignar. Transaccional: o se asigna todo el reparto o nada.
+     *
+     * @return resumen con disponibles, asignados por usuario y saldo restante
+     */
+    @Transactional
+    public Map<String, Object> asignarCargaMasivaMulti(
+            Long cargaMasivaId,
+            List<AsignacionMultiRequest.Item> items,
+            Long administradorId) {
+
+        if (items == null || items.isEmpty()) {
+            throw new IllegalArgumentException("Debe indicar al menos un colaborador y cantidad.");
+        }
+
+        CargaMasiva cargaMasiva = cargaMasivaRepository.findById(cargaMasivaId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Carga masiva no encontrada con ID: " + cargaMasivaId));
+
+        Usuario administrador = usuarioRepository.findById(administradorId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Administrador no encontrado con ID: " + administradorId));
+
+        // Validar cada item y resolver usuarios (no se permiten usuarios repetidos)
+        List<Long> vistos = new ArrayList<>();
+        List<Usuario> usuarios = new ArrayList<>();
+        int sumaSolicitada = 0;
+        for (AsignacionMultiRequest.Item item : items) {
+            if (item.getUsuarioId() == null || item.getCantidad() == null) {
+                throw new IllegalArgumentException("Cada asignación requiere usuarioId y cantidad.");
+            }
+            if (item.getCantidad() <= 0) {
+                throw new IllegalArgumentException("La cantidad debe ser mayor a 0.");
+            }
+            if (vistos.contains(item.getUsuarioId())) {
+                throw new IllegalArgumentException(
+                        "El colaborador " + item.getUsuarioId() + " está repetido en el reparto.");
+            }
+            vistos.add(item.getUsuarioId());
+            Usuario u = usuarioRepository.findById(item.getUsuarioId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Usuario no encontrado con ID: " + item.getUsuarioId()));
+            if (Boolean.FALSE.equals(u.getEstado())) {
+                throw new IllegalArgumentException(
+                        "El colaborador " + u.getUsuario() + " está inactivo.");
+            }
+            usuarios.add(u);
+            sumaSolicitada += item.getCantidad();
+        }
+
+        List<Prospecto> disponibles =
+                prospectoRepository.findUnassignedByCargaMasiva(cargaMasiva);
+        if (disponibles.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "No hay prospectos disponibles para asignar en esta carga.");
+        }
+        if (sumaSolicitada > disponibles.size()) {
+            throw new IllegalArgumentException(
+                    "La suma solicitada (" + sumaSolicitada + ") excede los prospectos disponibles ("
+                    + disponibles.size() + ").");
+        }
+
+        LocalDateTime ahora = LocalDateTime.now();
+        List<Asignacion> nuevas = new ArrayList<>();
+        List<Map<String, Object>> detallePorUsuario = new ArrayList<>();
+        int cursor = 0;
+
+        for (int idx = 0; idx < items.size(); idx++) {
+            AsignacionMultiRequest.Item item = items.get(idx);
+            Usuario usuario = usuarios.get(idx);
+            List<Prospecto> lote = disponibles.subList(cursor, cursor + item.getCantidad());
+            cursor += item.getCantidad();
+
+            for (Prospecto p : lote) {
+                Asignacion a = new Asignacion();
+                a.setProspecto(p);
+                a.setUsuario(usuario);
+                a.setAdministrador(administrador);
+                a.setAsignadoPor(administrador);
+                a.setFechaAsignacion(ahora);
+                a.setFechaAsignacionRegistro(ahora);
+                a.setEstado(EstadoGestion.SIN_GESTIONAR);
+                nuevas.add(a);
+            }
+
+            Map<String, Object> d = new HashMap<>();
+            d.put("usuarioId", usuario.getId());
+            d.put("usuarioNombre", usuario.getNombre() + " " + usuario.getApellidos());
+            d.put("asignados", item.getCantidad());
+            detallePorUsuario.add(d);
+        }
+
+        asignacionRepository.saveAll(nuevas);
+        cargaMasivaService.actualizarEstadoAsignacion(cargaMasivaId);
+
+        Map<String, Object> resultado = new HashMap<>();
+        resultado.put("success", true);
+        resultado.put("mensaje", "Reparto completado exitosamente");
+        resultado.put("cargaMasivaId", cargaMasivaId);
+        resultado.put("cargaMasivaNombre", cargaMasiva.getNombrearchivo());
+        resultado.put("disponiblesAntes", disponibles.size());
+        resultado.put("totalAsignados", nuevas.size());
+        resultado.put("saldoSinAsignar", disponibles.size() - nuevas.size());
+        resultado.put("detalle", detallePorUsuario);
+        resultado.put("fechaAsignacion", ahora);
+        return resultado;
+    }
+
+    /**
+     * Obtiene estadisticas generales de asignaciones usando los enums canonicos.
+     *
+     * @return Map con las estadisticas
      */
     public Map<String, Object> obtenerEstadisticas() {
         Map<String, Object> estadisticas = new HashMap<>();
-        
-        // Contar total de asignaciones
+
         long totalAsignaciones = asignacionRepository.count();
-        
-        // Contar asignaciones por estado
-        long pendientes = asignacionRepository.countByEstado("Pendiente");
-        long reasignadas = asignacionRepository.countByEstado("Reasignado");
-        long completadas = asignacionRepository.countByEstado("Completado");
-        
-        // Total de prospectos
+        long sinGestionar = asignacionRepository.countByEstado(EstadoGestion.SIN_GESTIONAR);
+        long enGestion = asignacionRepository.countByEstado(EstadoGestion.EN_GESTION);
+        long enSeguimiento = asignacionRepository.countByEstado(EstadoGestion.EN_SEGUIMIENTO);
+        long derivados = asignacionRepository.countByEstado(EstadoGestion.DERIVADO);
+        long ganados = asignacionRepository.countByEstado(EstadoGestion.GANADO);
+        long descartados = asignacionRepository.countByEstado(EstadoGestion.DESCARTADO);
         long totalProspectos = prospectoRepository.count();
-        
-        // Total de cargas masivas
         long totalCargasMasivas = cargaMasivaRepository.count();
-        
-        // Total de usuarios
         long totalUsuarios = usuarioRepository.count();
 
         estadisticas.put("totalAsignaciones", totalAsignaciones);
-        estadisticas.put("pendientes", pendientes);
-        estadisticas.put("reasignadas", reasignadas);
-        estadisticas.put("completadas", completadas);
+        estadisticas.put("sinGestionar", sinGestionar);
+        estadisticas.put("enGestion", enGestion);
+        estadisticas.put("enSeguimiento", enSeguimiento);
+        estadisticas.put("derivados", derivados);
+        estadisticas.put("ganados", ganados);
+        estadisticas.put("descartados", descartados);
         estadisticas.put("totalProspectos", totalProspectos);
         estadisticas.put("totalCargasMasivas", totalCargasMasivas);
         estadisticas.put("totalUsuarios", totalUsuarios);
-        estadisticas.put("porcentajeAsignado", totalProspectos > 0 ? (double) totalAsignaciones / totalProspectos * 100 : 0);
+        estadisticas.put("porcentajeAsignado",
+                totalProspectos > 0 ? (double) totalAsignaciones / totalProspectos * 100 : 0);
 
         return estadisticas;
     }
