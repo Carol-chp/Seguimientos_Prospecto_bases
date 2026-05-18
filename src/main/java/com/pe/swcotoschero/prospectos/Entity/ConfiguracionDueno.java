@@ -60,6 +60,14 @@ public class ConfiguracionDueno {
     private Integer maxIntentosNoContesto = 6;
 
     /**
+     * Días hábiles de seguimiento sugeridos al marcar INTERESADO: el caso pasa a
+     * EN_SEGUIMIENTO con fechaAgenda = hoy + N días hábiles (editable por el
+     * colaborador). Evita que un interesado se enfríe sin recordatorio.
+     */
+    @Column(name = "plazo_seguimiento_interesado_dias", nullable = false)
+    private Integer plazoSeguimientoInteresadoDias = 1;
+
+    /**
      * Regla de reintento escalonada serializada como JSON o CSV de horas.
      * Default (6b.1): [3h, 24h, 48h, 72h, 120h] -> "+3h,+24h,+48h,+72h,+120h"
      * El servicio que calcula proximaLlamada lee este campo.

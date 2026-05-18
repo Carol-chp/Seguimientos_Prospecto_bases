@@ -52,6 +52,11 @@ public class ConfiguracionController {
                 throw new IllegalArgumentException("maxIntentosNoContesto debe ser >= 1.");
             c.setMaxIntentosNoContesto(req.getMaxIntentosNoContesto());
         }
+        if (req.getPlazoSeguimientoInteresadoDias() != null) {
+            if (req.getPlazoSeguimientoInteresadoDias() < 1)
+                throw new IllegalArgumentException("plazoSeguimientoInteresadoDias debe ser >= 1.");
+            c.setPlazoSeguimientoInteresadoDias(req.getPlazoSeguimientoInteresadoDias());
+        }
         if (req.getReglaReintentoNoContesto() != null)
             c.setReglaReintentoNoContesto(req.getReglaReintentoNoContesto());
         if (req.getHoraInicioJornada() != null) c.setHoraInicioJornada(req.getHoraInicioJornada());

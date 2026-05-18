@@ -553,10 +553,22 @@ public class ContactoService {
             }
 
             case INTERESADO: {
-                asignacion.setEstado(EstadoGestion.EN_GESTION);
+                // Un interesado NO se puede perder: pasa a EN_SEGUIMIENTO con una
+                // fecha de seguimiento. Si el colaborador la editó, se valida
+                // (futura + día laborable); si no, se sugiere por defecto
+                // (hoy + plazoSeguimientoInteresadoDias hábiles, configurable).
+                LocalDateTime seguimiento;
+                if (dto.getFechaAgenda() == null || dto.getFechaAgenda().isBlank()) {
+                    seguimiento = siguienteFechaSeguimiento(config, ahora);
+                } else {
+                    seguimiento = parseFechaAgenda(dto.getFechaAgenda());
+                    validarAgenda(seguimiento, ahora);
+                }
+                asignacion.setEstado(EstadoGestion.EN_SEGUIMIENTO);
                 asignacion.setEstadoResultado(resultado);
-                asignacion.setFechaAgenda(null);
-                return null;
+                asignacion.setFechaAgenda(seguimiento);
+                asignacion.setProximaLlamada(seguimiento);
+                return seguimiento;
             }
 
             case DERIVADO: {
@@ -611,6 +623,34 @@ public class ContactoService {
             }
         }
         return base.plusHours(3);
+    }
+
+    /**
+     * Fecha de seguimiento sugerida para INTERESADO: hoy + N días HÁBILES
+     * (config.plazoSeguimientoInteresadoDias, mín. 1), a la hora de inicio de
+     * jornada. Salta domingos/feriados reusando AsistenciaService (RF-22).
+     */
+    private LocalDateTime siguienteFechaSeguimiento(ConfiguracionDueno config,
+                                                    LocalDateTime ahora) {
+        int dias = config.getPlazoSeguimientoInteresadoDias() != null
+                ? Math.max(config.getPlazoSeguimientoInteresadoDias(), 1) : 1;
+        LocalTime hora;
+        try {
+            hora = LocalTime.parse(config.getHoraInicioJornada());
+        } catch (Exception e) {
+            hora = LocalTime.of(9, 0);
+        }
+        LocalDate d = ahora.toLocalDate();
+        int habiles = 0;
+        int guarda = 0; // cota de seguridad: nunca iterar más de ~1 año
+        while (habiles < dias && guarda < 366) {
+            d = d.plusDays(1);
+            guarda++;
+            if (asistenciaService.esDiaLaborable(d)) {
+                habiles++;
+            }
+        }
+        return d.atTime(hora);
     }
 
     // =========================================================================

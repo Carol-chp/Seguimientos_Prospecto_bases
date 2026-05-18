@@ -17,6 +17,7 @@ public class ConfiguracionRequest {
     private Integer metaDerivadosPorColaborador;
     private Integer plazoReevaluacionSbsDias;
     private Integer maxIntentosNoContesto;
+    private Integer plazoSeguimientoInteresadoDias;
     private String reglaReintentoNoContesto;
     private String horaInicioJornada;
     private Integer minutosGraciaAusencia;

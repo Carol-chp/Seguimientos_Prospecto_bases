@@ -308,26 +308,31 @@ class ContactoServiceTest {
     // =========================================================================
 
     @Test
-    void registrarContacto_interesado_estadoEnGestion() {
+    void registrarContacto_interesado_quedaEnSeguimientoConFechaSugerida() {
+        // INTERESADO ya no se "pierde": pasa a EN_SEGUIMIENTO con una fecha de
+        // seguimiento sugerida (hoy + plazoSeguimientoInteresadoDias hábiles).
         when(asignacionRepository
                 .findFirstByProspecto_ProspectoIDAndEstadoNotInOrderByFechaAsignacionDesc(
                         anyLong(), anyList()))
                 .thenReturn(Optional.of(asignacionActiva));
         when(configuracionDuenoRepository.findTopByOrderByIdAsc())
                 .thenReturn(Optional.of(config));
+        when(asistenciaService.esDiaLaborable(any(LocalDate.class))).thenReturn(true);
         when(contactoRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(asignacionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(prospectoRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         Map<String, Object> result = contactoService.registrarContacto(dto("INTERESADO", null), usuario);
 
-        assertEquals("EN_GESTION", result.get("estado"));
-        assertNull(result.get("proximaLlamada"));
+        assertEquals("EN_SEGUIMIENTO", result.get("estado"));
+        assertNotNull(result.get("proximaLlamada"));
 
         ArgumentCaptor<Asignacion> captor = ArgumentCaptor.forClass(Asignacion.class);
         verify(asignacionRepository).save(captor.capture());
-        assertEquals(EstadoGestion.EN_GESTION, captor.getValue().getEstado());
-        assertNull(captor.getValue().getFechaAgenda());
+        assertEquals(EstadoGestion.EN_SEGUIMIENTO, captor.getValue().getEstado());
+        assertNotNull(captor.getValue().getFechaAgenda(),
+                "INTERESADO debe quedar con fechaAgenda de seguimiento");
+        assertEquals(ResultadoAtencion.INTERESADO, captor.getValue().getEstadoResultado());
     }
 
     @Test
