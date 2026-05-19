@@ -59,6 +59,8 @@ public class ConfiguracionController {
         }
         if (req.getReglaReintentoNoContesto() != null)
             c.setReglaReintentoNoContesto(req.getReglaReintentoNoContesto());
+        if (req.getPlantillaWhatsapp() != null)
+            c.setPlantillaWhatsapp(req.getPlantillaWhatsapp());
         if (req.getHoraInicioJornada() != null) c.setHoraInicioJornada(req.getHoraInicioJornada());
         if (req.getMinutosGraciaAusencia() != null) {
             if (req.getMinutosGraciaAusencia() < 0)

@@ -19,6 +19,7 @@ public class ConfiguracionRequest {
     private Integer maxIntentosNoContesto;
     private Integer plazoSeguimientoInteresadoDias;
     private String reglaReintentoNoContesto;
+    private String plantillaWhatsapp;
     private String horaInicioJornada;
     private Integer minutosGraciaAusencia;
 }

@@ -75,6 +75,14 @@ public class ConfiguracionDueno {
     @Column(name = "regla_reintento_no_contesto", length = 200)
     private String reglaReintentoNoContesto = "+3h,+24h,+48h,+72h,+120h";
 
+    /**
+     * Plantilla del mensaje de WhatsApp que el colaborador envía tras un
+     * contacto efectivo no negativo. Variables: {nombre} (prospecto),
+     * {asesor} (colaborador). Editable por el dueño.
+     */
+    @Column(name = "plantilla_whatsapp", columnDefinition = "text")
+    private String plantillaWhatsapp;
+
     /** Hora de inicio de jornada esperada (HH:mm). Default: 09:00. */
     @Column(name = "hora_inicio_jornada", length = 5)
     private String horaInicioJornada = "09:00";
