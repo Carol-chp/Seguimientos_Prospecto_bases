@@ -2,6 +2,7 @@ package com.pe.swcotoschero.prospectos.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.pe.swcotoschero.prospectos.Entity.ConfiguracionDueno;
 import com.pe.swcotoschero.prospectos.Entity.Usuario;
 import com.pe.swcotoschero.prospectos.Repository.ConfiguracionDuenoRepository;
@@ -47,7 +48,12 @@ public class EmailService {
     private final ConfiguracionDuenoRepository configRepo;
     private final UsuarioRepository usuarioRepository;
     private final com.pe.swcotoschero.prospectos.Repository.ContactoRepository contactoRepository;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    // findAndRegisterModules(): registra JavaTimeModule (jackson-datatype-jsr310,
+    // ya en el classpath) para serializar LocalDateTime del DashboardDTO.
+    // Fechas como ISO-8601 legible (no array de números) para el correo.
+    private final ObjectMapper objectMapper = new ObjectMapper()
+            .findAndRegisterModules()
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
     @Value("${spring.mail.username:}")
     private String fromAddress;
@@ -110,6 +116,19 @@ public class EmailService {
                 .stream().findFirst().orElse(null);
         if (dueno == null || dueno.getEmail() == null || dueno.getEmail().isBlank()) {
             return registrarEstado(cfg, false, "El dueño no tiene email configurado.");
+        }
+
+        // Deduplicación entre réplicas (RF-07): el backend corre con varias
+        // réplicas y cada una dispara el scheduler. Reclamo atómico del día →
+        // solo UNA instancia continúa y envía; el resto se omite (un correo/día).
+        if (cfg.getId() != null) {
+            int claim = configRepo.reclamarEnvioDelDia(
+                    cfg.getId(), LocalDateTime.now(), LocalDate.now().atStartOfDay());
+            if (claim == 0) {
+                log.info("Resumen diario: ya gestionado hoy por otra instancia; se omite.");
+                return new ResultadoEnvio(false,
+                        "Resumen del día ya gestionado por otra instancia.");
+            }
         }
 
         final String html;
