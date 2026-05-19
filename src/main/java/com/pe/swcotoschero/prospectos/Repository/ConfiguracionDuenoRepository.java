@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -26,6 +27,8 @@ public interface ConfiguracionDuenoRepository extends JpaRepository<Configuracio
      * el mismo segundo → exactamente UNA recibe 1 (gana el envío); el resto
      * recibe 0 y debe saltar. El estado final lo reescribe registrarEstado().
      */
+    @Transactional  // tx propia: el caller (enviarResumenDiarioAsync→this.enviarResumenDiario)
+                    // pierde el @Transactional por auto-invocación; el UPDATE la necesita.
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE ConfiguracionDueno c SET c.ultimoEnvioResumenFecha = :ahora " +
            "WHERE c.id = :id AND (c.ultimoEnvioResumenFecha IS NULL " +
