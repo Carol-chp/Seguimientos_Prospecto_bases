@@ -6,7 +6,9 @@ metadata:
   labels:
     app: prospectos-backend-app
 spec:
-  minAvailable: 1
+  # Con 1 réplica, minAvailable:1 bloquearía drenajes de nodo. En pruebas
+  # usamos maxUnavailable:1 para no bloquear mantenimiento del clúster.
+  maxUnavailable: 1
   selector:
     matchLabels:
       app: prospectos-backend-app

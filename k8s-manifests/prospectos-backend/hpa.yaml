@@ -10,8 +10,9 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: prospectos-backend-app
-  minReplicas: 2
-  maxReplicas: 6
+  # Fase de pruebas: mínimo 1, tope 2.
+  minReplicas: 1
+  maxReplicas: 2
   metrics:
     - type: Resource
       resource:
