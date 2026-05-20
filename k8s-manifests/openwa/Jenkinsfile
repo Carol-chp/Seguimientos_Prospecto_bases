@@ -1,0 +1,62 @@
+// Pipeline para construir la imagen de OpenWA (repo público de terceros)
+// y publicarla en el registry in-cluster. Mismo estilo que los pipelines
+// de backend/frontend de prospectos. Ejecutar manualmente al actualizar
+// OpenWA; no hay rebuild automático por push (no es nuestro repo).
+pipeline {
+    agent {
+        kubernetes {
+            yaml """
+            apiVersion: v1
+            kind: Pod
+            spec:
+              serviceAccountName: jenkins
+              automountServiceAccountToken: true
+              containers:
+              - name: kaniko
+                image: gcr.io/kaniko-project/executor:debug
+                command: ["tail", "-f", "/dev/null"]
+              - name: kubectl
+                image: lachlanevenson/k8s-kubectl
+                command: ["tail", "-f", "/dev/null"]
+                tty: true
+            """
+        }
+    }
+    environment {
+        REGISTRY_URL = 'registry.registry.svc.cluster.local:5000'
+        IMAGE_NAME   = 'openwa-api'
+        NAMESPACE    = 'backend-ns'
+        REPO_URL     = 'https://github.com/rmyndharis/OpenWA.git'
+        BRANCH       = 'main'
+    }
+    stages {
+        stage('Clone Repository') {
+            steps {
+                git branch: "${BRANCH}", url: "${REPO_URL}"
+            }
+        }
+        stage('Build and Push Image') {
+            steps {
+                container('kaniko') {
+                    sh """
+                    /kaniko/executor --context=\$(pwd) \
+                        --dockerfile=\$(pwd)/Dockerfile \
+                        --destination=${REGISTRY_URL}/${IMAGE_NAME}:latest \
+                        --insecure --skip-tls-verify
+                    """
+                }
+            }
+        }
+        stage('Restart Deployment') {
+            steps {
+                container('kubectl') {
+                    sh "kubectl rollout restart deployment/${IMAGE_NAME} -n ${NAMESPACE}"
+                }
+            }
+        }
+    }
+    post {
+        success { echo "OpenWA construido y desplegado: ${REGISTRY_URL}/${IMAGE_NAME}:latest" }
+        failure { echo 'Pipeline OpenWA FALLÓ — revisar etapa.' }
+    }
+}

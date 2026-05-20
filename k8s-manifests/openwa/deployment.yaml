@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openwa-api
+  namespace: backend-ns
+  labels:
+    app: openwa-api
+spec:
+  # Imprescindible: 1 sola réplica (la sesión de WhatsApp Web es exclusiva
+  # del PVC; no se puede escalar horizontalmente).
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: openwa-api
+  template:
+    metadata:
+      labels:
+        app: openwa-api
+    spec:
+      containers:
+        - name: openwa-api
+          image: registry.registry.svc.cluster.local:5000/openwa-api:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 2785
+              name: http
+          envFrom:
+            - configMapRef:
+                name: openwa-config
+            - secretRef:
+                name: openwa-secret
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+          resources:
+            # Chromium es pesado: holgura sin pasarse.
+            requests:
+              memory: "512Mi"
+              cpu: "300m"
+            limits:
+              memory: "1536Mi"
+              cpu: "1500m"
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: 2785
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 2785
+            initialDelaySeconds: 10
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 2785
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: openwa-data-pvc

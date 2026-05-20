@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: openwa-data-pvc
+  namespace: backend-ns
+spec:
+  # ReadWriteOnce: una sola réplica (sesión de WhatsApp Web no es replicable).
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: ceph-block

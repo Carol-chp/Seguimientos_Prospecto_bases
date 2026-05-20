@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openwa-config
+  namespace: backend-ns
+data:
+  NODE_ENV: "production"
+  API_PORT: "2785"
+  LOG_LEVEL: "info"
+  ENGINE_TYPE: "whatsapp-web.js"
+  # Persistencia local en el PVC (sin DB externa, sin S3, sin Redis).
+  DATABASE_TYPE: "sqlite"
+  STORAGE_TYPE: "local"
+  STORAGE_LOCAL_PATH: "/app/data/media"
+  SESSION_DATA_PATH: "/app/data/sessions"
+  PLUGINS_DIR: "/app/data/plugins"
+  # Chromium dentro del contenedor (sin sandbox; corre como no-root igual).
+  PUPPETEER_HEADLESS: "true"
+  PUPPETEER_ARGS: "--no-sandbox,--disable-setuid-sandbox,--disable-dev-shm-usage,--disable-gpu"
+  # Sin Traefik propio (el clúster ya tiene el suyo); sin dashboard externo.
+  PROXY_ENABLED: "false"
+  DASHBOARD_ENABLED: "false"
+  ENABLE_SWAGGER: "true"
+  CORS_ORIGINS: "*"
