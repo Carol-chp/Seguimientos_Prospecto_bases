@@ -131,6 +131,8 @@ public class ColaboradorColaService {
                             .fechaContacto(c.getFechaContacto())
                             .estadoResultado(c.getEstadoResultado() != null
                                     ? c.getEstadoResultado().name() : null)
+                            .verificacionSbs(c.getVerificacionSbs() != null
+                                    ? c.getVerificacionSbs().name() : null)
                             .comentario(c.getComentario())
                             .duracionGestion(c.getDuracionGestion())
                             .build();

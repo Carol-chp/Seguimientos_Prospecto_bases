@@ -51,8 +51,10 @@ public class MiActividadDTO {
         /** Celular enmascarado (últimos 3 dígitos). */
         private String celular;
         private LocalDateTime fechaContacto;
-        /** Nombre del enum ResultadoAtencion. */
+        /** Nombre del enum ResultadoAtencion (null si el evento es solo SBS). */
         private String estadoResultado;
+        /** Nombre del enum VerificacionSbs (p. ej. OBSERVADO) para eventos SBS sin llamada. */
+        private String verificacionSbs;
         private String comentario;
         /** Duración de la gestión en segundos (null si no se registró). */
         private Integer duracionGestion;
