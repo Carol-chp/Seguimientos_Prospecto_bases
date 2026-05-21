@@ -15,6 +15,5 @@ public class EmbudoDTO {
     private long gestionados;
     private long contactadosTitular;
     private long interesados;
-    private long derivados;
     private long ventas;
 }

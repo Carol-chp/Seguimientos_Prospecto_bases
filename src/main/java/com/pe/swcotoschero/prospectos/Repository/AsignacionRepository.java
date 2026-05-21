@@ -425,26 +425,6 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Long> {
             @Param("fin") LocalDateTime fin);
 
     /**
-     * Derivaciones en un periodo (fecha_derivacion en el rango).
-     */
-    @Query("SELECT COUNT(a) FROM Asignacion a " +
-           "WHERE a.fechaDerivacion >= :inicio AND a.fechaDerivacion <= :fin")
-    long countDerivadosPeriodo(
-            @Param("inicio") LocalDateTime inicio,
-            @Param("fin") LocalDateTime fin);
-
-    /**
-     * Derivaciones en un periodo atribuidas a un colaborador especifico.
-     */
-    @Query("SELECT COUNT(a) FROM Asignacion a " +
-           "WHERE a.fechaDerivacion >= :inicio AND a.fechaDerivacion <= :fin " +
-           "AND (COALESCE(a.derivadoPor.id, a.usuario.id) = :usuarioId)")
-    long countDerivadosColaboradorPeriodo(
-            @Param("usuarioId") Long usuarioId,
-            @Param("inicio") LocalDateTime inicio,
-            @Param("fin") LocalDateTime fin);
-
-    /**
      * Citas para hoy: EN_SEGUIMIENTO + AGENDADO + fechaAgenda dentro de hoy.
      */
     @Query("SELECT COUNT(a) FROM Asignacion a " +
@@ -477,11 +457,6 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Long> {
     @Query("SELECT COUNT(a) FROM Asignacion a " +
            "WHERE a.estado = com.pe.swcotoschero.prospectos.Entity.enums.EstadoGestion.EN_GESTION")
     long countInteresados();
-
-    /** Derivados global: estado DERIVADO. */
-    @Query("SELECT COUNT(a) FROM Asignacion a " +
-           "WHERE a.estado = com.pe.swcotoschero.prospectos.Entity.enums.EstadoGestion.DERIVADO")
-    long countDerivadosGlobal();
 
     /** Ventas global: estado GANADO. */
     @Query("SELECT COUNT(a) FROM Asignacion a " +

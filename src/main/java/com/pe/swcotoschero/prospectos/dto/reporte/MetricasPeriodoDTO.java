@@ -12,7 +12,6 @@ import lombok.Getter;
 public class MetricasPeriodoDTO {
 
     private long ventasCerradas;
-    private long derivados;
     private long atenciones;
 
     // Solo en "dia"

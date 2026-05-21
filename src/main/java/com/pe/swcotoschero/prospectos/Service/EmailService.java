@@ -370,13 +370,12 @@ public class EmailService {
         sb.append("<h3>Ranking por colaborador</h3>");
         sb.append("<table border=\"1\" cellpadding=\"6\" cellspacing=\"0\" "
                 + "style=\"border-collapse:collapse;font-size:13px\">");
-        sb.append("<tr style=\"background:#f0f0fb\"><th>Colaborador</th><th>Ventas</th>"
-                + "<th>Derivados</th><th>Atenciones</th><th>Contactabilidad</th>"
+        sb.append("<tr style=\"background:#f0f0fb\"><th>Colaborador</th>"
+                + "<th>Prospectos cerrados</th><th>Atenciones</th><th>Contactabilidad</th>"
                 + "<th>Última actividad</th></tr>");
         for (JsonNode r : d.path("ranking")) {
             sb.append("<tr><td>").append(txt(r, "nombre"))
               .append("</td><td align=\"center\">").append(txt(r, "ventasCerradas"))
-              .append("</td><td align=\"center\">").append(txt(r, "derivados"))
               .append("</td><td align=\"center\">").append(txt(r, "atenciones"))
               .append("</td><td align=\"center\">").append(pct(r, "contactabilidad"))
               .append("</td><td>").append(txt(r, "ultimaActividad"))
@@ -390,8 +389,7 @@ public class EmailService {
           .append(" → Gestionados ").append(txt(e, "gestionados"))
           .append(" → Contactados(titular) ").append(txt(e, "contactadosTitular"))
           .append(" → Interesados ").append(txt(e, "interesados"))
-          .append(" → Derivados ").append(txt(e, "derivados"))
-          .append(" → <b>Ventas ").append(txt(e, "ventas")).append("</b></p>");
+          .append(" → <b>Prospectos cerrados ").append(txt(e, "ventas")).append("</b></p>");
 
         // porCerrar eliminado: el colaborador cierra directamente (GANADO inmediato).
 

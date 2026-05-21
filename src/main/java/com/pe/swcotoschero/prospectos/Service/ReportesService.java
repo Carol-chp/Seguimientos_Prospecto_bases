@@ -142,7 +142,6 @@ public class ReportesService {
                                                     LocalDateTime finDia,
                                                     List<Usuario> colaboradores) {
         long ventasDia = asignacionRepository.countVentasCerradasPeriodo(inicioDia, finDia);
-        long derivadosDia = asignacionRepository.countDerivadosPeriodo(inicioDia, finDia);
         long atencionesDia = contactoRepository.countAtencionesPeriodo(inicioDia, finDia);
 
         List<Object[]> contactabilidadRows = contactoRepository.contactabilidadGlobal(inicioDia, finDia);
@@ -155,7 +154,6 @@ public class ReportesService {
 
         return MetricasPeriodoDTO.builder()
                 .ventasCerradas(ventasDia)
-                .derivados(derivadosDia)
                 .atenciones(atencionesDia)
                 .contactabilidadReal(contactabilidadReal)
                 .colaboradoresActivos(colaboradoresActivos)
@@ -169,14 +167,12 @@ public class ReportesService {
                                                     LocalDateTime inicioDia,
                                                     LocalDateTime finDia) {
         long ventasMes = asignacionRepository.countVentasCerradasPeriodo(inicioMes, finMes);
-        long derivadosMes = asignacionRepository.countDerivadosPeriodo(inicioMes, finMes);
         long atencionesMes = contactoRepository.countAtencionesPeriodo(inicioMes, finMes);
 
-        // tasaConversion = ventas cerradas / atenciones a titular en el mes.
-        // Con el nuevo flujo el colaborador cierra directamente (GANADO inmediato),
-        // por lo que "derivadosMes" ya no es un intermediario útil como denominador.
-        // Usamos contactadosTitular del mes como base de conversión real;
-        // guardamos división por cero retornando 0.0.
+        // tasaConversion = prospectos cerrados / contactados al titular.
+        // El colaborador cierra directamente (no hay paso de "derivado"); la base
+        // de conversión real son los contactos efectivos con el titular.
+        // División por cero → 0.0.
         long contactadosTitularMes = asignacionRepository.countAsignacionesContactadasTitular();
         double tasaConversion = contactadosTitularMes > 0
                 ? (double) ventasMes / contactadosTitularMes
@@ -192,7 +188,6 @@ public class ReportesService {
 
         return MetricasPeriodoDTO.builder()
                 .ventasCerradas(ventasMes)
-                .derivados(derivadosMes)
                 .atenciones(atencionesMes)
                 .tasaConversion(tasaConversion)
                 .avanceBasesPct(avanceBasesPct)
@@ -208,7 +203,6 @@ public class ReportesService {
             Long uid = u.getId();
 
             long ventas = asignacionRepository.countVentasCerradasColaboradorPeriodo(uid, inicioMes, finMes);
-            long derivados = asignacionRepository.countDerivadosColaboradorPeriodo(uid, inicioMes, finMes);
             long atenciones = contactoRepository.countAtencionesColaborador(uid, inicioMes, finMes);
 
             // Contactabilidad del colaborador en el mes
@@ -223,17 +217,16 @@ public class ReportesService {
                     .usuarioId(uid)
                     .nombre(nombreCompleto(u.getNombre(), u.getApellidos()))
                     .ventasCerradas(ventas)
-                    .derivados(derivados)
                     .atenciones(atenciones)
                     .contactabilidad(contactabilidad)
                     .ultimaActividad(ultimaActividad)
                     .build());
         }
-        // Ordenar por ventas desc, luego derivados desc
+        // Ordenar por prospectos cerrados desc, luego atenciones desc
         ranking.sort((a, b) -> {
             int cmp = Long.compare(b.getVentasCerradas(), a.getVentasCerradas());
             if (cmp != 0) return cmp;
-            return Long.compare(b.getDerivados(), a.getDerivados());
+            return Long.compare(b.getAtenciones(), a.getAtenciones());
         });
         return ranking;
     }
@@ -243,7 +236,6 @@ public class ReportesService {
         long gestionados = asignacionRepository.countGestionados();
         long contactadosTitular = asignacionRepository.countAsignacionesContactadasTitular();
         long interesados = asignacionRepository.countInteresados();
-        long derivados = asignacionRepository.countDerivadosGlobal();
         long ventas = asignacionRepository.countVentasGlobal();
 
         return EmbudoDTO.builder()
@@ -251,7 +243,6 @@ public class ReportesService {
                 .gestionados(gestionados)
                 .contactadosTitular(contactadosTitular)
                 .interesados(interesados)
-                .derivados(derivados)
                 .ventas(ventas)
                 .build();
     }

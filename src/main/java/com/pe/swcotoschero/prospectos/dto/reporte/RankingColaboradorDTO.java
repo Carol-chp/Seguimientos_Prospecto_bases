@@ -16,7 +16,6 @@ public class RankingColaboradorDTO {
     private Long usuarioId;
     private String nombre;
     private long ventasCerradas;
-    private long derivados;
     private long atenciones;
     private double contactabilidad;
     private LocalDateTime ultimaActividad;

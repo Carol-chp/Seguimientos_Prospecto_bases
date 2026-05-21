@@ -166,7 +166,6 @@ class ReportesServiceTest {
 
         // Period counts (dia + mes)
         when(asignacionRepository.countVentasCerradasPeriodo(any(), any())).thenReturn(0L);
-        when(asignacionRepository.countDerivadosPeriodo(any(), any())).thenReturn(0L);
         when(contactoRepository.countAtencionesPeriodo(any(), any())).thenReturn(0L);
         when(contactoRepository.contactabilidadGlobal(any(), any())).thenReturn(Collections.emptyList());
         when(contactoRepository.countColaboradoresActivosHoy(any(), any())).thenReturn(0L);
@@ -181,7 +180,6 @@ class ReportesServiceTest {
         when(asignacionRepository.countGestionados()).thenReturn(0L);
         when(asignacionRepository.countAsignacionesContactadasTitular()).thenReturn(0L);
         when(asignacionRepository.countInteresados()).thenReturn(0L);
-        when(asignacionRepository.countDerivadosGlobal()).thenReturn(0L);
         when(asignacionRepository.countVentasGlobal()).thenReturn(0L);
 
         // Bases
