@@ -25,8 +25,8 @@ public class CreateUsuarioRequestDTO {
     @Size(min = 3, max = 50, message = "El usuario debe tener entre 3 y 50 caracteres")
     private String usuario;
 
-    @NotBlank(message = "El email es requerido")
-    @Email(message = "El email debe ser válido")
+    // El email es opcional: el destinatario de reportes se configura en ConfiguracionDueno.
+    @Email(message = "El email debe ser válido si se proporciona")
     private String email;
 
     @NotBlank(message = "La contraseña es requerida")

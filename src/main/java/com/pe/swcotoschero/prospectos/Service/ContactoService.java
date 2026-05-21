@@ -572,10 +572,15 @@ public class ContactoService {
             }
 
             case DERIVADO: {
-                asignacion.setEstado(EstadoGestion.DERIVADO);
+                // El colaborador cierra directamente: GANADO atribuido a él mismo.
+                // ResultadoAtencion queda DERIVADO (histórico del evento).
+                // fechaElegibilidad queda null → el job D7 no lo reprocesa.
+                asignacion.setEstado(EstadoGestion.GANADO);
                 asignacion.setEstadoResultado(resultado);
                 asignacion.setDerivadoPor(usuarioAutenticado);
                 asignacion.setFechaDerivacion(ahora);
+                asignacion.setCerradoPor(usuarioAutenticado);
+                asignacion.setFechaCierre(ahora);
                 asignacion.setFechaAgenda(null);
                 return null;
             }

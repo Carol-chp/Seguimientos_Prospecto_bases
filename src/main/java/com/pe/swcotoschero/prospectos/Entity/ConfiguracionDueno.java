@@ -95,6 +95,23 @@ public class ConfiguracionDueno {
     // Estado del último envío del resumen diario (RF-07 — registro + aviso)
     // -------------------------------------------------------------------------
 
+    // -------------------------------------------------------------------------
+    // Email destinatario de reportes (V6)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Correo al que se envían el resumen diario y las notificaciones de atención.
+     * Desacoplado del correo del usuario administrador: el email del usuario
+     * pasa a ser opcional y este campo es el destinatario efectivo de reportes.
+     * Si es null/blank se hace fallback al correo del admin (compatibilidad).
+     */
+    @Column(name = "email_reportes", length = 150)
+    private String emailReportes;
+
+    // -------------------------------------------------------------------------
+    // Estado del último envío del resumen diario (RF-07 — registro + aviso)
+    // -------------------------------------------------------------------------
+
     @Column(name = "ultimo_envio_resumen_ok")
     private Boolean ultimoEnvioResumenOk;
 

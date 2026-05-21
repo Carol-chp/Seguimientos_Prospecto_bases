@@ -336,7 +336,9 @@ class ContactoServiceTest {
     }
 
     @Test
-    void registrarContacto_derivado_estadoDerivadoConAtribucion() {
+    void registrarContacto_derivado_cierraDirectamenteGanado() {
+        // Con el nuevo flujo el colaborador cierra directamente: DERIVADO (resultado)
+        // lleva el estado a GANADO, atribuido al propio colaborador.
         when(asignacionRepository
                 .findFirstByProspecto_ProspectoIDAndEstadoNotInOrderByFechaAsignacionDesc(
                         anyLong(), anyList()))
@@ -349,15 +351,22 @@ class ContactoServiceTest {
 
         Map<String, Object> result = contactoService.registrarContacto(dto("DERIVADO", null), usuario);
 
-        assertEquals("DERIVADO", result.get("estado"));
+        // Estado terminal GANADO (no DERIVADO)
+        assertEquals("GANADO", result.get("estado"));
+        assertNull(result.get("proximaLlamada"), "venta cerrada no tiene próxima llamada");
 
         ArgumentCaptor<Asignacion> captor = ArgumentCaptor.forClass(Asignacion.class);
         verify(asignacionRepository).save(captor.capture());
         Asignacion saved = captor.getValue();
-        assertEquals(EstadoGestion.DERIVADO, saved.getEstado());
-        assertEquals(usuario, saved.getDerivadoPor(), "derivadoPor debe ser el usuario autenticado");
+        assertEquals(EstadoGestion.GANADO, saved.getEstado());
+        assertEquals(ResultadoAtencion.DERIVADO, saved.getEstadoResultado(),
+                "resultadoAtencion histórico queda DERIVADO");
+        assertEquals(usuario, saved.getDerivadoPor(), "derivadoPor debe ser el colaborador");
+        assertEquals(usuario, saved.getCerradoPor(), "cerradoPor debe ser el colaborador");
+        assertNotNull(saved.getFechaCierre(), "fechaCierre debe estar fijada");
         assertNotNull(saved.getFechaDerivacion(), "fechaDerivacion debe estar fijada");
-        assertNull(saved.getFechaAgenda());
+        assertNull(saved.getFechaAgenda(), "sin agenda tras cierre");
+        assertNull(saved.getFechaElegibilidad(), "fechaElegibilidad null → job D7 no reprocesa");
     }
 
     @Test

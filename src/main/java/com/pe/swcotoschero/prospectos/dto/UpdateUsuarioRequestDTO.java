@@ -26,8 +26,8 @@ public class UpdateUsuarioRequestDTO {
     @Size(min = 2, max = 100, message = "Los apellidos deben tener entre 2 y 100 caracteres")
     private String apellidos;
 
-    @NotBlank(message = "El email es requerido")
-    @Email(message = "El email debe ser válido")
+    // El email es opcional: el destinatario de reportes se configura en ConfiguracionDueno.
+    @Email(message = "El email debe ser válido si se proporciona")
     private String email;
 
     /**

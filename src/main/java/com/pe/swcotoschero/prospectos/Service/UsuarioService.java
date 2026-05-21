@@ -68,7 +68,9 @@ public class UsuarioService {
             nuevoUsuario.setNombre(request.getNombre());
             nuevoUsuario.setApellidos(request.getApellidos());
             nuevoUsuario.setUsuario(request.getUsuario());
-            nuevoUsuario.setEmail(request.getEmail());
+            // Email es opcional desde que el destinatario de reportes se gestiona en ConfiguracionDueno.
+            nuevoUsuario.setEmail(request.getEmail() != null && !request.getEmail().isBlank()
+                    ? request.getEmail().trim() : null);
             nuevoUsuario.setPassword(passwordEncoder.encode(request.getPassword()));
             nuevoUsuario.setEstado(true);
             nuevoUsuario.setRol(rol);
@@ -161,7 +163,9 @@ public class UsuarioService {
             // Actualizar campos del usuario
             usuarioExistente.setNombre(request.getNombre());
             usuarioExistente.setApellidos(request.getApellidos());
-            usuarioExistente.setEmail(request.getEmail());
+            // Email es opcional: null/blank limpia el campo sin error.
+            usuarioExistente.setEmail(request.getEmail() != null && !request.getEmail().isBlank()
+                    ? request.getEmail().trim() : null);
             usuarioExistente.setEstado(request.getEstado());
             usuarioExistente.setRol(rol);
 

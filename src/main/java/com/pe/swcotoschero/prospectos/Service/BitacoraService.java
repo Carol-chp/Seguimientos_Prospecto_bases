@@ -86,7 +86,7 @@ public class BitacoraService {
             Sheet sheet = wb.createSheet("Bitacora");
             CellStyle headerStyle = crearEstiloEncabezado(wb);
             String[] headers = {
-                "Fecha", "Colaborador", "Prospecto", "Celular", "Campaña", "Base",
+                "Fecha", "Colaborador", "Prospecto", "Celular", "Convenio", "Base",
                 "Resultado", "Submotivo", "Quien contestó", "SBS", "Duración (s)", "Comentario"
             };
             Row hr = sheet.createRow(0);

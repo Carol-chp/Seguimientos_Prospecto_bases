@@ -114,7 +114,6 @@ public class ReportesService {
         MetricasPeriodoDTO metricasMes = calcularMetricasMes(inicioMes, finMes, inicioDia, finDia);
         List<RankingColaboradorDTO> ranking = calcularRanking(colaboradores, inicioMes, finMes);
         EmbudoDTO embudo = calcularEmbudo();
-        long porCerrar = asignacionRepository.countDerivadosGlobal();
         List<BaseResumenDTO> bases = calcularBases();
 
         // 2.4 — bloque asistencia / ausentes / "En riesgo" (RF-22 / 5j)
@@ -133,7 +132,6 @@ public class ReportesService {
                 .mes(metricasMes)
                 .ranking(ranking)
                 .embudo(embudo)
-                .porCerrar(porCerrar)
                 .bases(bases)
                 .asistencia(asistencia)
                 .porEnRiesgo(porEnRiesgo)
@@ -174,8 +172,14 @@ public class ReportesService {
         long derivadosMes = asignacionRepository.countDerivadosPeriodo(inicioMes, finMes);
         long atencionesMes = contactoRepository.countAtencionesPeriodo(inicioMes, finMes);
 
-        double tasaConversion = derivadosMes > 0
-                ? (double) ventasMes / derivadosMes
+        // tasaConversion = ventas cerradas / atenciones a titular en el mes.
+        // Con el nuevo flujo el colaborador cierra directamente (GANADO inmediato),
+        // por lo que "derivadosMes" ya no es un intermediario útil como denominador.
+        // Usamos contactadosTitular del mes como base de conversión real;
+        // guardamos división por cero retornando 0.0.
+        long contactadosTitularMes = asignacionRepository.countAsignacionesContactadasTitular();
+        double tasaConversion = contactadosTitularMes > 0
+                ? (double) ventasMes / contactadosTitularMes
                 : 0.0;
 
         long totalAsignaciones = asignacionRepository.countTotalAsignaciones();
@@ -364,7 +368,7 @@ public class ReportesService {
             CellStyle headerStyle = crearEstiloEncabezado(wb);
 
             String[] headers = {
-                "Prospecto", "Documento", "Celular", "Campaña",
+                "Prospecto", "Documento", "Celular", "Convenio",
                 "Colaborador", "Estado", "Resultado", "FechaAsignacion", "FechaCierre"
             };
             Row headerRow = sheet.createRow(0);
@@ -430,7 +434,7 @@ public class ReportesService {
             CellStyle headerStyle = crearEstiloEncabezado(wb);
 
             String[] headers = {
-                "Prospecto", "Documento", "Celular", "Campaña",
+                "Prospecto", "Documento", "Celular", "Convenio",
                 "Estado", "Resultado", "FechaAgenda", "TotalContactos"
             };
             Row headerRow = sheet.createRow(0);

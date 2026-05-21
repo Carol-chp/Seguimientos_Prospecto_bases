@@ -87,21 +87,6 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Long> {
     long countByUsuario_IdAndEstadoResultado(Long usuarioId, ResultadoAtencion estadoResultado);
 
     /**
-     * "Por cerrar" del dueño (5c.bis): ciclos en estado DERIVADO, con el prospecto,
-     * su campaña y el colaborador que derivó (derivadoPor) ya cargados (evita N+1).
-     * Orden: derivación más antigua primero (el que espera hace más tiempo).
-     */
-    @Query(value = "SELECT a FROM Asignacion a " +
-           "JOIN FETCH a.prospecto p " +
-           "LEFT JOIN FETCH p.campania " +
-           "LEFT JOIN FETCH a.derivadoPor " +
-           "WHERE a.estado = com.pe.swcotoschero.prospectos.Entity.enums.EstadoGestion.DERIVADO " +
-           "ORDER BY a.fechaDerivacion ASC NULLS LAST, a.fechaAsignacion ASC",
-           countQuery = "SELECT COUNT(a) FROM Asignacion a " +
-           "WHERE a.estado = com.pe.swcotoschero.prospectos.Entity.enums.EstadoGestion.DERIVADO")
-    Page<Asignacion> findPorCerrar(Pageable pageable);
-
-    /**
      * Casos ACTIVOS de un colaborador (reasignables): SIN_GESTIONAR, EN_GESTION,
      * EN_SEGUIMIENTO. Excluye DERIVADO/GANADO/DESCARTADO (no se reasignan — 5j).
      */

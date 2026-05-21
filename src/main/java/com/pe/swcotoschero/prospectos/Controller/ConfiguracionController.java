@@ -67,6 +67,14 @@ public class ConfiguracionController {
                 throw new IllegalArgumentException("minutosGraciaAusencia debe ser >= 0.");
             c.setMinutosGraciaAusencia(req.getMinutosGraciaAusencia());
         }
+        if (req.getEmailReportes() != null) {
+            String email = req.getEmailReportes().trim();
+            if (!email.isEmpty() && !email.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) {
+                throw new IllegalArgumentException(
+                        "emailReportes no tiene formato de correo válido: " + email);
+            }
+            c.setEmailReportes(email.isEmpty() ? null : email);
+        }
         return ResponseEntity.ok(repo.save(c));
     }
 }

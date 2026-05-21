@@ -22,4 +22,10 @@ public class ConfiguracionRequest {
     private String plantillaWhatsapp;
     private String horaInicioJornada;
     private Integer minutosGraciaAusencia;
+    /**
+     * Email destinatario de reportes (resumen diario + notificaciones de atención).
+     * Null = no modificar. Blank = limpiar (volverá al fallback del admin).
+     * Formato email básico validado en el controlador si no es null/blank.
+     */
+    private String emailReportes;
 }

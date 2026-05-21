@@ -133,12 +133,13 @@ public class ReportesController {
     // =========================================================================
 
     /**
-     * El colaborador autenticado descarga su propia cola segun el filtro solicitado.
-     * Celular y documento van enmascarados (igual que en la UI).
+     * Descarga de prospectos del colaborador — solo ADMINISTRADOR (privacidad).
+     * El acceso se restringe al dueño; el frontend ya no muestra el botón al colaborador.
      *
      * @param filtro Filtro de FiltroColaborador (default TODOS)
      */
     @GetMapping("/exportar-mis-prospectos")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<byte[]> exportarMisProspectos(
             @RequestParam(defaultValue = "TODOS") String filtro) {
 

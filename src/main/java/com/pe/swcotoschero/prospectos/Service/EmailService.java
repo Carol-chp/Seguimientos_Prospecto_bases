@@ -111,11 +111,11 @@ public class EmailService {
                     + "Configure MAIL_ENABLED=true + MAIL_USERNAME + MAIL_APP_PASSWORD.");
         }
 
-        Usuario dueno = usuarioRepository
-                .findByRol_IdAndEstadoOrderByNombreAsc(ADMIN_ROL_ID, true)
-                .stream().findFirst().orElse(null);
-        if (dueno == null || dueno.getEmail() == null || dueno.getEmail().isBlank()) {
-            return registrarEstado(cfg, false, "El dueño no tiene email configurado.");
+        // Resolver destinatario: emailReportes tiene prioridad; fallback al correo del admin.
+        String destinatario = resolverDestinatario(cfg);
+        if (destinatario == null) {
+            return registrarEstado(cfg, false,
+                    "Sin destinatario configurado: configure emailReportes o el correo del administrador.");
         }
 
         // Deduplicación entre réplicas (RF-07): el backend corre con varias
@@ -151,16 +151,16 @@ public class EmailService {
                 if (fromAddress != null && !fromAddress.isBlank()) {
                     helper.setFrom(fromAddress);
                 }
-                helper.setTo(dueno.getEmail());
+                helper.setTo(destinatario);
                 helper.setSubject(asunto);
                 helper.setText(html, true);
                 helper.addAttachment("resumen_prospectos.xlsx",
                         new ByteArrayResource(excel),
                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
                 mailSender.send(msg);
-                log.info("Resumen diario enviado a {} (intento {})", dueno.getEmail(), intento);
+                log.info("Resumen diario enviado a {} (intento {})", destinatario, intento);
                 return registrarEstado(cfg, true,
-                        "Enviado a " + dueno.getEmail() + " (intento " + intento + ").");
+                        "Enviado a " + destinatario + " (intento " + intento + ").");
             } catch (Exception e) {
                 ultimoError = e;
                 log.warn("Resumen diario: fallo intento {}/{}: {}",
@@ -235,10 +235,12 @@ public class EmailService {
             var prospecto = asig.getProspecto();
             if (colaborador == null || prospecto == null) return;
 
-            com.pe.swcotoschero.prospectos.Entity.Usuario dueno = usuarioRepository
-                    .findByRol_IdAndEstadoOrderByNombreAsc(ADMIN_ROL_ID, true)
-                    .stream().findFirst().orElse(null);
-            if (dueno == null || dueno.getEmail() == null || dueno.getEmail().isBlank()) return;
+            // Resolver destinatario con la misma lógica que enviarResumenDiario.
+            String destinatarioNotif = resolverDestinatario(cfg);
+            if (destinatarioNotif == null) {
+                log.info("notificarAtencion: sin destinatario configurado; se omite.");
+                return;
+            }
 
             String colab = (colaborador.getNombre() + " " + colaborador.getApellidos()).trim();
             String prosp = (prospecto.getNombre() + " " + prospecto.getApellido()).trim()
@@ -265,7 +267,7 @@ public class EmailService {
                         + "<br>Comentario: " + esc(nz(contacto.getComentario())) + "</p>"
                         + "<p style=\"color:#666\">Acumulado de hoy de " + esc(colab)
                         + ": " + total + " atenciones.</p></div>";
-                enviarSimple(mailSender, dueno.getEmail(),
+                enviarSimple(mailSender, destinatarioNotif,
                         "[Prospectos] " + colab + ": " + resultado + " — "
                         + prospecto.getNombre(), html);
             }
@@ -289,13 +291,36 @@ public class EmailService {
                         .append("</td></tr>"));
                 sb.append("</table><p style=\"color:#666\">Acumulado de hoy: ")
                   .append(total).append(" atenciones.</p></div>");
-                enviarSimple(mailSender, dueno.getEmail(),
+                enviarSimple(mailSender, destinatarioNotif,
                         "[Prospectos] " + colab + ": 5 atenciones", sb.toString());
             }
         } catch (Exception e) {
             // best-effort: nunca propaga al registro de la atención
             log.warn("notificarAtencion: fallo best-effort: {}", e.getMessage());
         }
+    }
+
+    /**
+     * Resuelve el destinatario efectivo para los correos de reportes.
+     * Prioridad:
+     *  1. cfg.emailReportes (configurado explícitamente por el dueño).
+     *  2. Correo del primer usuario ADMINISTRADOR activo (fallback de compatibilidad).
+     * Retorna null si ninguno está disponible; el caller debe abortar sin error visible.
+     */
+    private String resolverDestinatario(ConfiguracionDueno cfg) {
+        if (cfg.getEmailReportes() != null && !cfg.getEmailReportes().isBlank()) {
+            return cfg.getEmailReportes().trim();
+        }
+        // Fallback al correo del admin para no romper instalaciones existentes.
+        Usuario admin = usuarioRepository
+                .findByRol_IdAndEstadoOrderByNombreAsc(ADMIN_ROL_ID, true)
+                .stream().findFirst().orElse(null);
+        if (admin != null && admin.getEmail() != null && !admin.getEmail().isBlank()) {
+            log.debug("emailReportes no configurado; usando correo del administrador como fallback.");
+            return admin.getEmail().trim();
+        }
+        log.warn("Sin email de reportes: configure emailReportes en /api/reportes/config.");
+        return null;
     }
 
     private void enviarSimple(JavaMailSender mailSender, String to,
@@ -368,8 +393,7 @@ public class EmailService {
           .append(" → Derivados ").append(txt(e, "derivados"))
           .append(" → <b>Ventas ").append(txt(e, "ventas")).append("</b></p>");
 
-        sb.append("<p><b>Por cerrar (derivados pendientes):</b> ")
-          .append(d.path("porCerrar").asText("0")).append("</p>");
+        // porCerrar eliminado: el colaborador cierra directamente (GANADO inmediato).
 
         // 2.4 — Asistencia del día / casos "En riesgo" (RF-22 / 5j)
         JsonNode as = d.path("asistencia");
