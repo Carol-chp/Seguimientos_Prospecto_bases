@@ -468,9 +468,16 @@ public interface AsignacionRepository extends JpaRepository<Asignacion, Long> {
            "WHERE a.estado != com.pe.swcotoschero.prospectos.Entity.enums.EstadoGestion.SIN_GESTIONAR")
     long countAvanceBasesMgmt();
 
-    /** Total de prospectos sin ninguna asignacion (disponibles sin asignar). */
-    @Query("SELECT COUNT(p) FROM Prospecto p WHERE NOT EXISTS " +
-           "(SELECT a FROM Asignacion a WHERE a.prospecto = p)")
+    /**
+     * Total de prospectos sin asignación activa (disponibles para asignar).
+     *
+     * Misma definición que ProspectoRepository.findUnassignedByCargaMasiva:
+     * solo DESCARTADO libera el prospecto; GANADO (cerrado) NO vuelve al pool.
+     */
+    @Query("SELECT COUNT(p) FROM Prospecto p WHERE NOT EXISTS (" +
+           "  SELECT a FROM Asignacion a WHERE a.prospecto = p " +
+           "  AND a.estado <> com.pe.swcotoschero.prospectos.Entity.enums.EstadoGestion.DESCARTADO" +
+           ")")
     long countProspectosSinAsignacion();
 
     /**

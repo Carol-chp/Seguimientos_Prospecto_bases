@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
@@ -34,15 +35,46 @@ public interface ProspectoRepository extends JpaRepository<Prospecto, Long> {
     Long countByCargaMasiva(CargaMasiva cargaMasiva);
 
     /**
-     * Encuentra prospectos de una carga masiva que NO tienen asignación
+     * Encuentra prospectos de una carga masiva que NO tienen asignación activa.
+     *
+     * "Sin asignar" = ninguna asignación en estado distinto de DESCARTADO.
+     * Solo DESCARTADO libera el prospecto (caso de uso: enviar-banco → DESCARTADO
+     * → reasignable en el banco destino). GANADO NO libera: un prospecto cerrado
+     * no vuelve al pool de asignación (la recurrencia D7 crea un ciclo nuevo aparte).
      */
-    @Query("SELECT p FROM Prospecto p WHERE p.cargaMasiva = :cargaMasiva AND NOT EXISTS (SELECT a FROM Asignacion a WHERE a.prospecto = p)")
+    @Query("SELECT p FROM Prospecto p WHERE p.cargaMasiva = :cargaMasiva " +
+           "AND NOT EXISTS (" +
+           "  SELECT a FROM Asignacion a WHERE a.prospecto = p " +
+           "  AND a.estado <> com.pe.swcotoschero.prospectos.Entity.enums.EstadoGestion.DESCARTADO" +
+           ")")
     List<Prospecto> findUnassignedByCargaMasiva(CargaMasiva cargaMasiva);
 
     /**
-     * Cuenta prospectos de una carga masiva que NO tienen asignación
+     * Cuenta prospectos de una carga masiva que NO tienen asignación activa.
+     * Misma definición que findUnassignedByCargaMasiva.
      */
-    @Query("SELECT COUNT(p) FROM Prospecto p WHERE p.cargaMasiva = :cargaMasiva AND NOT EXISTS (SELECT a FROM Asignacion a WHERE a.prospecto = p)")
+    @Query("SELECT COUNT(p) FROM Prospecto p WHERE p.cargaMasiva = :cargaMasiva " +
+           "AND NOT EXISTS (" +
+           "  SELECT a FROM Asignacion a WHERE a.prospecto = p " +
+           "  AND a.estado <> com.pe.swcotoschero.prospectos.Entity.enums.EstadoGestion.DESCARTADO" +
+           ")")
     Long countUnassignedByCargaMasiva(CargaMasiva cargaMasiva);
+
+    /**
+     * Encuentra prospectos de una carga masiva sin asignación activa y que
+     * pertenecen a un banco específico.
+     *
+     * Usado por AsignacionService para respetar el banco del colaborador destino:
+     * solo se asignan prospectos cuyo bancoEntidad coincide con el banco del usuario.
+     */
+    @Query("SELECT p FROM Prospecto p WHERE p.cargaMasiva = :cargaMasiva " +
+           "AND p.bancoEntidad = :banco " +
+           "AND NOT EXISTS (" +
+           "  SELECT a FROM Asignacion a WHERE a.prospecto = p " +
+           "  AND a.estado <> com.pe.swcotoschero.prospectos.Entity.enums.EstadoGestion.DESCARTADO" +
+           ")")
+    List<Prospecto> findUnassignedByCargaMasivaAndBanco(
+            @Param("cargaMasiva") CargaMasiva cargaMasiva,
+            @Param("banco") com.pe.swcotoschero.prospectos.Entity.Banco banco);
 }
 

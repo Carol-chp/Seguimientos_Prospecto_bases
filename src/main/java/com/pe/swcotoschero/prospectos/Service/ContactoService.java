@@ -659,6 +659,72 @@ public class ContactoService {
     }
 
     // =========================================================================
+    // BK-2 — Enviar al banco destino (caso OBSERVADO)
+    // =========================================================================
+
+    /**
+     * Reenvía un prospecto OBSERVADO al banco destino configurado en su banco actual.
+     *
+     * Flujo:
+     *  1. Resolver ciclo activo del prospecto.
+     *  2. Verificar que el ciclo pertenece al colaborador autenticado.
+     *  3. Validar que el ciclo está en estado OBSERVADO (verificacionSbs=OBSERVADO).
+     *  4. Determinar el banco destino desde prospecto.bancoEntidad.bancoDestino.
+     *  5. Cerrar el ciclo como DESCARTADO (terminal) con auditoría en motivoReasignacion.
+     *  6. Actualizar prospecto.bancoEntidad al banco destino → queda sin asignación
+     *     activa en ese banco, listo para que el dueño lo reasigne a un colaborador BBVA.
+     *
+     * NO se crea un ciclo nuevo — eso es responsabilidad del dueño al reasignar.
+     *
+     * @param prospectoId      ID del prospecto a reenviar.
+     * @param callerUsuarioId  ID del usuario autenticado (debe ser dueño del ciclo).
+     * @return Map { ok: true, bancoDestino: "nombre" }
+     */
+    @Transactional
+    public Map<String, Object> enviarABancoDestino(Long prospectoId, Long callerUsuarioId) {
+        Asignacion asignacion = resolverCicloActivo(prospectoId);
+        verificarOwnership(asignacion, callerUsuarioId);
+
+        // Validar que el ciclo está OBSERVADO
+        if (asignacion.getVerificacionSbs() != VerificacionSbs.OBSERVADO) {
+            throw new IllegalArgumentException(
+                    "Solo se puede enviar a otro banco un caso OBSERVADO.");
+        }
+
+        // Resolver banco destino desde el prospecto
+        Prospecto prospecto = asignacion.getProspecto();
+        if (prospecto.getBancoEntidad() == null) {
+            throw new IllegalArgumentException(
+                    "El prospecto no tiene banco asignado.");
+        }
+        com.pe.swcotoschero.prospectos.Entity.Banco destino =
+                prospecto.getBancoEntidad().getBancoDestino();
+        if (destino == null) {
+            throw new IllegalArgumentException(
+                    "Este banco no tiene banco destino configurado.");
+        }
+
+        LocalDateTime ahora = LocalDateTime.now();
+
+        // Cerrar el ciclo actual como DESCARTADO (estado terminal inmutable)
+        asignacion.setEstado(DESCARTADO);
+        asignacion.setMotivoReasignacion(
+                "Enviado a " + destino.getNombre() + " (observado SBS)");
+        asignacion.setFechaReasignacion(ahora);
+        asignacion.setFechaAgenda(null);
+        asignacionRepository.save(asignacion);
+
+        // Cambiar banco del prospecto → queda reasignable en el banco destino
+        prospecto.setBancoEntidad(destino);
+        prospectoRepository.save(prospecto);
+
+        Map<String, Object> respuesta = new LinkedHashMap<>();
+        respuesta.put("ok", true);
+        respuesta.put("bancoDestino", destino.getNombre());
+        return respuesta;
+    }
+
+    // =========================================================================
     // Metodos de compatibilidad mantenidos (usados por tests existentes o
     // endpoints de otros controladores que llaman a este service)
     // =========================================================================

@@ -5,6 +5,7 @@ import com.pe.swcotoschero.prospectos.Repository.UsuarioRepository;
 import com.pe.swcotoschero.prospectos.Service.ContactoService;
 import com.pe.swcotoschero.prospectos.dto.AperturaResponseDTO;
 import com.pe.swcotoschero.prospectos.dto.ContactoRegistroDTO;
+import com.pe.swcotoschero.prospectos.dto.EnviarBancoRequestDTO;
 import com.pe.swcotoschero.prospectos.dto.HistorialContactoDTO;
 import com.pe.swcotoschero.prospectos.dto.VerificacionSbsRequestDTO;
 import org.springframework.http.ResponseEntity;
@@ -103,6 +104,33 @@ public class ContactoController {
             @RequestBody ContactoRegistroDTO dto) {
         Usuario usuarioAutenticado = obtenerUsuarioAutenticado();
         Map<String, Object> resultado = contactoService.registrarContacto(dto, usuarioAutenticado);
+        return ResponseEntity.ok(resultado);
+    }
+
+    // -------------------------------------------------------------------------
+    // BK-2 — Enviar al banco destino (caso OBSERVADO)
+    // -------------------------------------------------------------------------
+
+    /**
+     * POST /api/contactos/enviar-banco
+     *
+     * El colaborador reenvía un prospecto OBSERVADO al banco destino.
+     * El ciclo actual se cierra como DESCARTADO; el prospecto cambia de banco
+     * y queda sin asignación activa para que el dueño lo reasigne.
+     *
+     * Body: { "prospectoId": N }
+     * 200: { "ok": true, "bancoDestino": "nombre" }
+     * 400: si el ciclo no es OBSERVADO o no hay banco destino configurado.
+     */
+    @PostMapping("/enviar-banco")
+    public ResponseEntity<Map<String, Object>> enviarBanco(
+            @RequestBody EnviarBancoRequestDTO dto) {
+        if (dto.getProspectoId() == null) {
+            throw new IllegalArgumentException("prospectoId es obligatorio.");
+        }
+        Usuario caller = obtenerUsuarioAutenticado();
+        Map<String, Object> resultado =
+                contactoService.enviarABancoDestino(dto.getProspectoId(), caller.getId());
         return ResponseEntity.ok(resultado);
     }
 

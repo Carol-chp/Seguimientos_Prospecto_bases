@@ -81,12 +81,21 @@ public class AsignacionService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Administrador no encontrado con ID: " + administradorId));
 
+        // BK-2: filtrar prospectos por el banco del colaborador destino.
+        // Si el usuario tiene banco asignado, solo se consideran prospectos de ese banco;
+        // si no tiene banco (caso administrador), se usa el pool completo.
         List<Prospecto> prospectosSinAsignar =
-                prospectoRepository.findUnassignedByCargaMasiva(cargaMasiva);
+                usuario.getBanco() != null
+                        ? prospectoRepository.findUnassignedByCargaMasivaAndBanco(
+                                cargaMasiva, usuario.getBanco())
+                        : prospectoRepository.findUnassignedByCargaMasiva(cargaMasiva);
 
         if (prospectosSinAsignar.isEmpty()) {
+            String mensajeBanco = usuario.getBanco() != null
+                    ? " de tu banco (" + usuario.getBanco().getNombre() + ")"
+                    : "";
             throw new IllegalArgumentException(
-                    "No hay prospectos disponibles para asignar en esta carga masiva");
+                    "No hay prospectos sin asignar" + mensajeBanco + " en esta carga masiva.");
         }
 
         if (cantidad != null) {
@@ -195,30 +204,55 @@ public class AsignacionService {
             sumaSolicitada += item.getCantidad();
         }
 
-        List<Prospecto> disponibles =
+        // BK-2: cada colaborador solo recibe prospectos de su banco.
+        // Pool total sin asignar (para el resumen final); el reparto efectivo
+        // se hace por banco de cada colaborador.
+        List<Prospecto> disponiblesTotal =
                 prospectoRepository.findUnassignedByCargaMasiva(cargaMasiva);
-        if (disponibles.isEmpty()) {
+        if (disponiblesTotal.isEmpty()) {
             throw new IllegalArgumentException(
                     "No hay prospectos disponibles para asignar en esta carga.");
-        }
-        if (sumaSolicitada > disponibles.size()) {
-            throw new IllegalArgumentException(
-                    "La suma solicitada (" + sumaSolicitada + ") excede los prospectos disponibles ("
-                    + disponibles.size() + ").");
         }
 
         LocalDateTime ahora = LocalDateTime.now();
         List<Asignacion> nuevas = new ArrayList<>();
         List<Map<String, Object>> detallePorUsuario = new ArrayList<>();
-        int cursor = 0;
+        // IDs ya comprometidos en esta transacción (para evitar solapamiento entre
+        // colaboradores del mismo banco dentro del mismo reparto).
+        java.util.Set<Long> yaComprometidos = new java.util.HashSet<>();
 
         for (int idx = 0; idx < items.size(); idx++) {
             AsignacionMultiRequest.Item item = items.get(idx);
             Usuario usuario = usuarios.get(idx);
-            List<Prospecto> lote = disponibles.subList(cursor, cursor + item.getCantidad());
-            cursor += item.getCantidad();
 
+            // Pool de prospectos sin asignar para el banco de este colaborador
+            List<Prospecto> poolUsuario;
+            if (usuario.getBanco() != null) {
+                poolUsuario = prospectoRepository
+                        .findUnassignedByCargaMasivaAndBanco(cargaMasiva, usuario.getBanco())
+                        .stream()
+                        .filter(p -> !yaComprometidos.contains(p.getProspectoID()))
+                        .collect(java.util.stream.Collectors.toList());
+            } else {
+                // Sin banco asignado (admin): accede al pool global
+                poolUsuario = disponiblesTotal.stream()
+                        .filter(p -> !yaComprometidos.contains(p.getProspectoID()))
+                        .collect(java.util.stream.Collectors.toList());
+            }
+
+            if (item.getCantidad() > poolUsuario.size()) {
+                String bancoDes = usuario.getBanco() != null
+                        ? " del banco " + usuario.getBanco().getNombre()
+                        : "";
+                throw new IllegalArgumentException(
+                        "La cantidad solicitada (" + item.getCantidad() + ") para el colaborador "
+                        + usuario.getUsuario() + " excede los prospectos disponibles"
+                        + bancoDes + " (" + poolUsuario.size() + ").");
+            }
+
+            List<Prospecto> lote = poolUsuario.subList(0, item.getCantidad());
             for (Prospecto p : lote) {
+                yaComprometidos.add(p.getProspectoID());
                 Asignacion a = new Asignacion();
                 a.setProspecto(p);
                 a.setUsuario(usuario);
@@ -245,9 +279,9 @@ public class AsignacionService {
         resultado.put("mensaje", "Reparto completado exitosamente");
         resultado.put("cargaMasivaId", cargaMasivaId);
         resultado.put("cargaMasivaNombre", cargaMasiva.getNombrearchivo());
-        resultado.put("disponiblesAntes", disponibles.size());
+        resultado.put("disponiblesAntes", disponiblesTotal.size());
         resultado.put("totalAsignados", nuevas.size());
-        resultado.put("saldoSinAsignar", disponibles.size() - nuevas.size());
+        resultado.put("saldoSinAsignar", disponiblesTotal.size() - nuevas.size());
         resultado.put("detalle", detallePorUsuario);
         resultado.put("fechaAsignacion", ahora);
         return resultado;
