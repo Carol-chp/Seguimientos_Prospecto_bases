@@ -42,4 +42,7 @@ public class UpdateUsuarioRequestDTO {
 
     @NotNull(message = "El estado es requerido")
     private Boolean estado;
+
+    /** ID del banco al que pertenece el usuario. Requerido para TELEOPERADOR, null para ADMINISTRADOR. */
+    private Long bancoId;
 }

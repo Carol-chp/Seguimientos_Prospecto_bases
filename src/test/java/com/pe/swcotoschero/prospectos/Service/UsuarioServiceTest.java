@@ -1,7 +1,10 @@
 package com.pe.swcotoschero.prospectos.Service;
 
+import com.pe.swcotoschero.prospectos.Entity.Banco;
 import com.pe.swcotoschero.prospectos.Entity.Rol;
 import com.pe.swcotoschero.prospectos.Entity.Usuario;
+import com.pe.swcotoschero.prospectos.Repository.AsignacionRepository;
+import com.pe.swcotoschero.prospectos.Repository.BancoRepository;
 import com.pe.swcotoschero.prospectos.Repository.RolRepository;
 import com.pe.swcotoschero.prospectos.Repository.UsuarioRepository;
 import com.pe.swcotoschero.prospectos.dto.CreateUsuarioRequestDTO;
@@ -32,6 +35,12 @@ class UsuarioServiceTest {
     private RolRepository rolRepository;
 
     @Mock
+    private AsignacionRepository asignacionRepository;
+
+    @Mock
+    private BancoRepository bancoRepository;
+
+    @Mock
     private PasswordEncoder passwordEncoder;
 
     @InjectMocks
@@ -50,7 +59,8 @@ class UsuarioServiceTest {
             "jperez",
             "jperez@example.com",
             "password123",
-            2L
+            2L,
+            null  // bancoId — sin banco en los tests existentes
         );
 
         testRol = new Rol();
@@ -251,7 +261,8 @@ class UsuarioServiceTest {
             "cgarcia@example.com",
             null, // Sin cambio de password
             2L,
-            true
+            true,
+            null  // bancoId
         );
 
         when(usuarioRepository.findById(1L))
@@ -281,7 +292,8 @@ class UsuarioServiceTest {
             "cgarcia@example.com",
             "newPassword123",
             2L,
-            true
+            true,
+            null  // bancoId
         );
 
         when(usuarioRepository.findById(1L))
@@ -314,7 +326,8 @@ class UsuarioServiceTest {
             "cgarcia@example.com",
             "   ", // Password vacío
             2L,
-            true
+            true,
+            null  // bancoId
         );
 
         String originalPassword = testUsuario.getPassword();
@@ -347,7 +360,8 @@ class UsuarioServiceTest {
             "cgarcia@example.com",
             null,
             2L,
-            false
+            false,
+            null  // bancoId
         );
 
         when(usuarioRepository.findById(1L))
@@ -382,7 +396,8 @@ class UsuarioServiceTest {
             "cgarcia@example.com",
             null,
             2L,
-            true
+            true,
+            null  // bancoId
         );
 
         when(usuarioRepository.findById(99L))
@@ -409,7 +424,8 @@ class UsuarioServiceTest {
             "cgarcia@example.com",
             null,
             99L,
-            true
+            true,
+            null  // bancoId
         );
 
         when(usuarioRepository.findById(1L))
@@ -438,7 +454,8 @@ class UsuarioServiceTest {
             "cgarcia@example.com",
             null,
             2L,
-            true
+            true,
+            null  // bancoId
         );
 
         when(usuarioRepository.findById(1L))

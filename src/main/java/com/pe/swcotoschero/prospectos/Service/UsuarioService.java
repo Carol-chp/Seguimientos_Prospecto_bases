@@ -1,8 +1,10 @@
 package com.pe.swcotoschero.prospectos.Service;
 
+import com.pe.swcotoschero.prospectos.Entity.Banco;
 import com.pe.swcotoschero.prospectos.Entity.Rol;
 import com.pe.swcotoschero.prospectos.Entity.Usuario;
 import com.pe.swcotoschero.prospectos.Repository.AsignacionRepository;
+import com.pe.swcotoschero.prospectos.Repository.BancoRepository;
 import com.pe.swcotoschero.prospectos.Repository.RolRepository;
 import com.pe.swcotoschero.prospectos.Repository.UsuarioRepository;
 import com.pe.swcotoschero.prospectos.dto.CreateUsuarioRequestDTO;
@@ -25,6 +27,7 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final RolRepository rolRepository;
     private final AsignacionRepository asignacionRepository;
+    private final BancoRepository bancoRepository;
     private final PasswordEncoder passwordEncoder;
     
     // ID del rol de administrador (según datos de la BD)
@@ -74,6 +77,7 @@ public class UsuarioService {
             nuevoUsuario.setPassword(passwordEncoder.encode(request.getPassword()));
             nuevoUsuario.setEstado(true);
             nuevoUsuario.setRol(rol);
+            nuevoUsuario.setBanco(resolverBanco(request.getBancoId()));
 
             // Guardar el usuario
             Usuario usuarioGuardado = usuarioRepository.save(nuevoUsuario);
@@ -168,6 +172,7 @@ public class UsuarioService {
                     ? request.getEmail().trim() : null);
             usuarioExistente.setEstado(request.getEstado());
             usuarioExistente.setRol(rol);
+            usuarioExistente.setBanco(resolverBanco(request.getBancoId()));
 
             // Solo actualizar password si se proporciona (no null y no vacío)
             if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {
@@ -269,6 +274,20 @@ public class UsuarioService {
     }
 
     /**
+     * Resuelve un Banco a partir de su id.
+     * Si bancoId es null → devuelve null (el usuario queda sin banco, p. ej. administradores).
+     * Si bancoId no existe en la BD → lanza IllegalArgumentException.
+     */
+    private Banco resolverBanco(Long bancoId) {
+        if (bancoId == null) {
+            return null;
+        }
+        return bancoRepository.findById(bancoId)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "El banco especificado no existe (id=" + bancoId + ")"));
+    }
+
+    /**
      * Convertir entidad Usuario a DTO
      */
     private UsuarioDTO convertirADTO(Usuario usuario) {
@@ -284,6 +303,12 @@ public class UsuarioService {
         if (usuario.getRol() != null) {
             dto.setRolId(usuario.getRol().getId());
             dto.setRolNombre(usuario.getRol().getNombre());
+        }
+
+        // Información del banco (nullable para administradores)
+        if (usuario.getBanco() != null) {
+            dto.setBancoId(usuario.getBanco().getId());
+            dto.setBancoNombre(usuario.getBanco().getNombre());
         }
 
         return dto;

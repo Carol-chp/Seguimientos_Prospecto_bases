@@ -13,6 +13,10 @@ public class UsuarioDTO {
     private Long rolId;
     private String rolNombre;
 
+    // Información del banco (nullable — admins no tienen banco)
+    private Long bancoId;
+    private String bancoNombre;
+
     // Constructor vacío
     public UsuarioDTO() {}
 
@@ -107,6 +111,22 @@ public class UsuarioDTO {
 
     public void setRolNombre(String rolNombre) {
         this.rolNombre = rolNombre;
+    }
+
+    public Long getBancoId() {
+        return bancoId;
+    }
+
+    public void setBancoId(Long bancoId) {
+        this.bancoId = bancoId;
+    }
+
+    public String getBancoNombre() {
+        return bancoNombre;
+    }
+
+    public void setBancoNombre(String bancoNombre) {
+        this.bancoNombre = bancoNombre;
     }
 
     private void updateNombreCompleto() {

@@ -1,8 +1,10 @@
 package com.pe.swcotoschero.prospectos.Service;
 
+import com.pe.swcotoschero.prospectos.Entity.Banco;
 import com.pe.swcotoschero.prospectos.Entity.Campania;
 import com.pe.swcotoschero.prospectos.Entity.CargaMasiva;
 import com.pe.swcotoschero.prospectos.Entity.Prospecto;
+import com.pe.swcotoschero.prospectos.Repository.BancoRepository;
 import com.pe.swcotoschero.prospectos.Repository.CampaniaRepository;
 import com.pe.swcotoschero.prospectos.Repository.CargaMasivaRepository;
 import com.pe.swcotoschero.prospectos.Repository.ProspectoRepository;
@@ -32,6 +34,7 @@ public class ProspectoService {
     private final ExcelUploadService excelUploadService;
     private final CampaniaRepository campaniaRepository;
     private final CargaMasivaRepository cargaMasivaRepository;
+    private final BancoRepository bancoRepository;
 
     /** Tamaño máximo del archivo decodificado (defensa ante payloads enormes). */
     private static final int MAX_BYTES = 10 * 1024 * 1024; // 10 MB
@@ -117,6 +120,13 @@ public class ProspectoService {
     private List<Prospecto> mapFromDto(List<ProspectoDTO> prospectos, CargaMasiva cargaMasiva) {
         HashMap<String, Campania> campanias = new HashMap<>();
         List<Prospecto> result = new ArrayList<>();
+
+        // Resolver banco default una sola vez por lote (evitar N consultas)
+        Banco bancoDefault = bancoRepository.findFirstByEsDefaultTrue().orElse(null);
+        if (bancoDefault == null) {
+            log.warn("No hay banco default configurado; los prospectos importados quedarán sin banco.");
+        }
+
         List<String> campaniasNombres = prospectos.stream().map(ProspectoDTO::getCampania).toList();
         campaniasNombres.forEach(campaniaNombre -> {
             Campania campania = campaniaRepository.findByNombre(campaniaNombre).orElse(null);
@@ -128,6 +138,8 @@ public class ProspectoService {
             }
             campanias.put(campaniaNombre, campania);
         });
+
+        final Banco bancoFinal = bancoDefault;
         prospectos.forEach(prospecto -> {
             Prospecto p = new Prospecto();
             p.setNombre(prospecto.getNombre());
@@ -137,6 +149,7 @@ public class ProspectoService {
             p.setCampania(campanias.get(prospecto.getCampania()));
             p.setDistrito(prospecto.getDistrito());
             p.setCargaMasiva(cargaMasiva);
+            p.setBancoEntidad(bancoFinal);
             result.add(p);
         });
         return result;

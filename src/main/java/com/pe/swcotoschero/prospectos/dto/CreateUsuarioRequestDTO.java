@@ -35,4 +35,7 @@ public class CreateUsuarioRequestDTO {
 
     @NotNull(message = "El rol es requerido")
     private Long rolId;
+
+    /** ID del banco al que pertenece el usuario. Requerido para TELEOPERADOR, null para ADMINISTRADOR. */
+    private Long bancoId;
 }

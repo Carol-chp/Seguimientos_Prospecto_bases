@@ -2,6 +2,7 @@ package com.pe.swcotoschero.prospectos.Entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -42,6 +43,15 @@ public class Prospecto {
     @ManyToOne
     @JoinColumn(name = "idcargamasiva")
     private CargaMasiva cargaMasiva;
+
+    /**
+     * Banco al que pertenece este prospecto.
+     * Al importar un Excel, se asigna automáticamente el banco default (Scotiabank).
+     * Puede reasignarse manualmente (BK-2).
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "banco_id")
+    private Banco bancoEntidad;
 
     @Column(name = "subcampania") // Ajuste para evitar problemas con tildes
     private String subcampania;
